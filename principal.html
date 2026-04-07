@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Love - Vera</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#EC4899">
+</head>
+
+<body class="bg-pink-50 min-h-screen font-sans">
+
+<!-- HEADER -->
+<header class="bg-white shadow-md py-4 px-6 flex items-center justify-between">
+  <button id="menuBtn" class="px-2 py-1 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200">
+    &#9776;
+  </button>
+
+  <h1 class="text-2xl font-bold text-pink-600 text-center flex-1">Daily Love</h1>
+
+  <div class="text-gray-700 font-semibold hidden sm:block">
+    Hola, <span id="userName"></span> ❤️
+  </div>
+</header>
+
+<!-- OVERLAY -->
+<div id="overlay" class="fixed inset-0 bg-black bg-opacity-40 hidden z-40"></div>
+
+<!-- MENÚ -->
+<nav id="sideMenu"
+  class="fixed top-0 left-0 h-full w-64 bg-white shadow-md transform -translate-x-full transition-transform duration-300 z-50 p-6">
+
+  <h2 class="text-xl font-bold text-pink-600 mb-6">Menú</h2>
+
+  <ul class="flex flex-col gap-3">
+    <li><button class="menuBtn w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="inicio">Inicio</button></li>
+    <li><button class="menuBtn w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="mensajes">Mensajes</button></li>
+    <li><button class="menuBtn w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="fotos">Fotos</button></li>
+    <li><button class="menuBtn w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="canciones">Canciones</button></li>
+    <li><button class="menuBtn w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="videos">Videos</button></li>
+    <li><button class="menuBtn w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="frases">Frases</button></li>
+
+    <li><hr class="my-2 border-pink-100"></li>
+
+    <!-- 🔥 NUEVO -->
+    <li>
+      <button id="btnCerrarSesion"
+        class="w-full text-left px-4 py-2 rounded hover:bg-red-100 text-red-500">
+        Cerrar sesión
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<!-- MODAL FOTO GRANDE -->
+<div id="modalFoto"
+  class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4">
+
+  <div class="bg-white rounded-lg p-4 max-w-lg w-full relative">
+    <button id="btnCerrarFoto"
+      class="absolute top-2 right-2 text-gray-500 hover:text-black text-xl">
+      ✕
+    </button>
+    <img id="imagenGrande" class="w-full max-h-[70vh] object-contain rounded mb-4" src="" alt="Foto">
+    <div class="flex justify-center">
+      <a id="btnDescargar" download
+        class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">
+        ⬇ Descargar
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENIDO -->
+<main class="p-6">
+
+  <!-- INICIO -->
+  <div id="inicio" class="section">
+    <section class="mb-6 text-center">
+      <h2 class="text-xl font-semibold text-gray-700 mb-2">
+        Bienvenido, <span id="userNameMain"></span> ❤️
+      </h2>
+      <p class="text-gray-600 mb-6">
+        Aquí verás todo lo que tu pareja ha compartido para ti 💖
+      </p>
+    </section>
+
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-pink-600 mb-2">Mensajes diarios</h3>
+        <ul class="listaMensajes"></ul>
+      </div>
+
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-pink-600 mb-2">Fotos</h3>
+        <div class="listaFotos grid grid-cols-2 gap-2"></div>
+      </div>
+
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-pink-600 mb-2">Canciones</h3>
+        <ul class="listaCanciones"></ul>
+      </div>
+
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-pink-600 mb-2">Videos</h3>
+        <ul class="listaVideos"></ul>
+      </div>
+
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-pink-600 mb-2">Frases</h3>
+        <ul class="listaFrases"></ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MENSAJES -->
+  <div id="mensajes" class="section hidden">
+    <h2 class="text-xl font-semibold text-pink-600 mb-6">Mensajes</h2>
+    <div id="mensajesContainer" class="space-y-6"></div>
+  </div>
+
+  <!-- FOTOS -->
+  <div id="fotos" class="section hidden">
+    <h2 class="text-xl font-semibold text-pink-600 mb-6">Fotos</h2>
+    <div id="fotosContainer" class="space-y-6"></div>
+  </div>
+
+  <!-- CANCIONES -->
+  <div id="canciones" class="section hidden">
+    <h2 class="text-xl font-semibold text-pink-600 mb-6">Canciones</h2>
+    <div id="cancionesContainer" class="space-y-6"></div>
+  </div>
+
+  <!-- VIDEOS -->
+  <div id="videos" class="section hidden">
+    <h2 class="text-xl font-semibold text-pink-600 mb-6">Videos</h2>
+    <div id="videosContainer" class="space-y-6"></div>
+  </div>
+
+  <!-- FRASES -->
+  <div id="frases" class="section hidden">
+    <h2 class="text-xl font-semibold text-pink-600 mb-6">Frases</h2>
+    <div id="frasesContainer" class="space-y-6"></div>
+  </div>
+
+</main>
+
+<script type="module" src="js/principal.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "Daily Love 💖",
+  "short_name": "Daily Love",
+  "start_url": "/inicio.html",
+  "display": "standalone",
+  "background_color": "#FDF2F8",
+  "theme_color": "#EC4899",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "DailyLove.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "DailyLove.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
