@@ -8,14 +8,16 @@
   "theme_color": "#ec4899",
   "icons": [
     {
-      "src": "DailyLove.png",
+      "src": "DailyLoveN.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "DailyLove.png",
+      "src": "DailyLoveN.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

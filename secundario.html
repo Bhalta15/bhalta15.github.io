@@ -7,6 +7,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#EC4899">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Daily Love">
+  <link rel="apple-touch-icon" href="DailyLoveN.png">
 </head>
 <body class="bg-pink-50 min-h-screen font-sans">
 
@@ -33,7 +37,6 @@
     <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="mensajes">Mensajes</button></li>
     <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="fotos">Fotos</button></li>
     <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="canciones">Canciones</button></li>
-    <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="videos">Videos</button></li>
     <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="frases">Frases</button></li>
     <li><hr class="my-2 border-pink-100"></li>
     <li><button id="btnCerrarSesion" class="w-full text-left px-4 py-2 rounded hover:bg-red-100 text-red-500">Cerrar sesión</button></li>
@@ -45,10 +48,26 @@
   class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 opacity-0 transition-opacity duration-300 p-4">
   <div class="bg-white p-6 rounded-lg w-full max-w-md">
     <h3 class="text-lg font-bold text-pink-600 mb-4">Nuevo contenido</h3>
-    <textarea id="inputTexto" class="w-full border rounded p-3 mb-3 hidden" placeholder="Escribe algo..."></textarea>
-    <input id="inputLink" class="w-full border rounded p-3 mb-3 hidden" placeholder="Pega un link...">
+
+    <!-- Texto (mensajes y frases) -->
+    <textarea id="inputTexto" class="w-full border rounded p-3 mb-3 hidden"
+      placeholder="Escribe algo..."></textarea>
+
+    <!-- Canción: descripción + link -->
+    <div id="inputCancionDiv" class="hidden mb-3 flex flex-col gap-3">
+      <textarea id="inputDescCancion"
+        class="w-full border rounded p-3 resize-none"
+        rows="2"
+        placeholder="Descripción🎵"></textarea>
+      <input id="inputLinkCancion"
+        class="w-full border rounded p-3"
+        placeholder="Pega el link de YouTube...">
+    </div>
+
+    <!-- Foto -->
     <input type="file" id="inputFile" class="w-full border rounded p-3 mb-3 hidden" accept="image/*">
     <img id="previewImagen" class="hidden mb-3 rounded max-h-40 mx-auto object-contain">
+
     <div class="flex justify-end gap-2">
       <button id="cancelar" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition">Cancelar</button>
       <button id="guardar" class="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">Guardar</button>
@@ -61,9 +80,7 @@
   class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg p-4 max-w-lg w-full relative">
     <button id="btnCerrarFoto"
-      class="absolute top-2 right-2 text-gray-500 hover:text-black text-xl">
-      ✕
-    </button>
+      class="absolute top-2 right-2 text-gray-500 hover:text-black text-xl">✕</button>
     <img id="imagenGrande" src="" alt="Foto"
       class="w-full max-h-[70vh] object-contain rounded mb-4">
     <div class="flex justify-center">
@@ -99,10 +116,6 @@
         <ul class="listaCanciones"></ul>
       </div>
       <div class="bg-white shadow rounded-lg p-4">
-        <h3 class="text-lg font-semibold text-pink-600 mb-2">Videos</h3>
-        <ul class="listaVideos"></ul>
-      </div>
-      <div class="bg-white shadow rounded-lg p-4">
         <h3 class="text-lg font-semibold text-pink-600 mb-2">Frases</h3>
         <ul class="listaFrases"></ul>
       </div>
@@ -134,15 +147,6 @@
       <button onclick="abrirModal('cancion')" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">+ Nuevo</button>
     </div>
     <div id="cancionesContainer" class="space-y-3"></div>
-  </div>
-
-  <!-- VIDEOS -->
-  <div id="videos" class="section hidden">
-    <div class="flex justify-between mb-6">
-      <h2 class="text-xl font-semibold text-pink-600">Videos</h2>
-      <button onclick="abrirModal('video')" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">+ Nuevo</button>
-    </div>
-    <div id="videosContainer" class="space-y-3"></div>
   </div>
 
   <!-- FRASES -->
