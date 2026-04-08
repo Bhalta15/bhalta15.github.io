@@ -2,25 +2,47 @@
 
 console.log("Inicio cargado correctamente 💖");
 
-// Aquí después puedes hacer:
-// - Verificar si el usuario ya inició sesión
-// - Redirigir automáticamente
-// - Animaciones, etc.
-
-// Ejemplo futuro:
-/*
-const user = JSON.parse(localStorage.getItem("user"));
-
-if (user) {
-  if (user.rol === "enviara") {
-    window.location.href = "admin.html";
-  } else {
-    window.location.href = "dashboard.html";
-  }
-}
-*/
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js")
     .then(() => console.log("PWA lista 💖"))
     .catch(err => console.log("Error SW:", err));
+}
+
+// 🔔 PEDIR PERMISO
+if ("Notification" in window) {
+  Notification.requestPermission().then((permission) => {
+    if (permission === "granted") {
+      console.log("Permiso concedido 💌");
+      obtenerToken();
+    } else {
+      console.log("Permiso denegado");
+    }
+  });
+}
+
+
+import { initializeApp } from "firebase/app";
+import { getMessaging, getToken } from "firebase/messaging";
+
+const firebaseConfig = {
+  // tu config aquí
+};
+
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
+
+function obtenerToken() {
+  getToken(messaging, {
+    vapidKey: "TU_VAPID_KEY"
+  }).then((currentToken) => {
+    if (currentToken) {
+      console.log("🔥 TOKEN:", currentToken);
+
+      // Aquí puedes copiarlo o guardarlo
+    } else {
+      console.log("No se pudo obtener token");
+    }
+  }).catch((err) => {
+    console.log("Error al obtener token:", err);
+  });
 }

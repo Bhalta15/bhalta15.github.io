@@ -329,8 +329,3 @@ window.abrirFoto = (src) => {
 };
 
 
-
-// 🔔 PEDIR PERMISO
-if ("Notification" in window) {
-  Notification.requestPermission();
-}
