@@ -3,9 +3,12 @@ import { GoogleAuthProvider, signInWithPopup,
   signInWithEmailAndPassword,
   sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 import { auth, db } from "./firebase.js";
-import { setDoc, getDoc, doc }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+import { setDoc, getDoc, doc, collection, query, where, getDocs }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 import { mostrarToast } from "./toast.js";
 
 // ===== ELEMENTOS =====
@@ -24,17 +27,16 @@ function mostrarPrimerError(campos) {
     const input = document.getElementById(id);
     if (!input) continue;
 
-    // Si el campo está oculto o en contenedor oculto, saltarlo
     if (input.offsetParent === null) continue;
 
     const valor = input.value.trim();
     if (!valor) {
       mostrarErrorInline(id, mensajeVacio(id));
       input.focus();
-      return true; // hay error, detener
+      return true;
     }
   }
-  return false; // todos llenos
+  return false;
 }
 
 function mensajeVacio(id) {
@@ -79,7 +81,6 @@ function limpiarTodos() {
 btnRegistrar.addEventListener("click", async () => {
   limpiarTodos();
 
-  // Validar uno por uno en orden
   if (mostrarPrimerError(camposRegistro)) return;
 
   if (!window.rol) {
@@ -104,6 +105,27 @@ btnRegistrar.addEventListener("click", async () => {
       rol:     window.rol,
       codigo:  codigo
     });
+
+    // 🔥 BUSCAR SI YA EXISTE ALGUIEN CON ESE CODIGO
+    const q = query(collection(db, "usuarios"), where("codigo", "==", codigo));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      querySnapshot.forEach(async (docSnap) => {
+        if (docSnap.id !== user.uid) {
+
+          const uidPareja = docSnap.id;
+
+          // 🔥 CREAR PAREJA AUTOMÁTICAMENTE
+          await setDoc(doc(db, "parejas", codigo), {
+            usuarios: [user.uid, uidPareja],
+            fechaCreacion: new Date()
+          });
+
+          console.log("Pareja creada automáticamente 💖");
+        }
+      });
+    }
 
     mostrarToast("Te enviamos un correo para verificar tu cuenta 💌", "info");
     setTimeout(() => window.location.href = "registro.html", 2500);
