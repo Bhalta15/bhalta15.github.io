@@ -1,4 +1,4 @@
-import {
+import { GoogleAuthProvider, signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification
@@ -14,6 +14,7 @@ import { mostrarToast } from "./toast.js";
 // ===== ELEMENTOS =====
 const btnRegistrar = document.getElementById("btnRegistrar");
 const btnIniciar   = document.getElementById("btnIniciar");
+const btnGoogle    = document.getElementById("btnGoogle");
 
 // ===== ERRORES INLINE =====
 const camposRegistro = ["usuario", "email", "password", "codigo"];
@@ -68,11 +69,6 @@ function limpiarTodos() {
   [...camposRegistro, ...camposLogin].forEach(id => limpiarError(id));
 }
 
-// ===== VALIDAR FORMATO EMAIL =====
-function esEmailValido(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 // ===== VERIFICAR SI EL CÓDIGO YA TIENE 2 USUARIOS =====
 async function codigoEstaLleno(codigo) {
   const q = query(collection(db, "usuarios"), where("codigo", "==", codigo));
@@ -92,18 +88,15 @@ btnRegistrar.addEventListener("click", async () => {
   const password = document.getElementById("password").value;
   const codigo   = document.getElementById("codigo").value.trim();
 
-  if (!esEmailValido(email)) {
-    mostrarErrorInline("email", "El formato del correo no es válido");
-    return;
-  }
-
   try {
+    // 🔥 PRIMERO verificar si el código ya tiene 2 usuarios
     const lleno = await codigoEstaLleno(codigo);
     if (lleno) {
       mostrarErrorInline("codigo", "Este código ya está completo 💔");
       return;
     }
 
+    // 🔥 Ahora sí crear el usuario
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
@@ -116,6 +109,7 @@ btnRegistrar.addEventListener("click", async () => {
       codigo:  codigo
     });
 
+    // 🔥 Buscar si ya hay alguien con ese código para crear la pareja
     const q = query(collection(db, "usuarios"), where("codigo", "==", codigo));
     const querySnapshot = await getDocs(q);
 
@@ -146,11 +140,6 @@ btnIniciar.addEventListener("click", async () => {
   const email    = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
 
-  if (!esEmailValido(email)) {
-    mostrarErrorInline("loginEmail", "El formato del correo no es válido");
-    return;
-  }
-
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -174,16 +163,73 @@ btnIniciar.addEventListener("click", async () => {
   }
 });
 
+// ===== GOOGLE =====
+btnGoogle.addEventListener("click", async () => {
+  limpiarTodos();
+
+  if (!window.rol) return mostrarToast("Selecciona un rol primero", "error");
+
+  const codigo = document.getElementById("codigo").value.trim();
+  if (!codigo)  return mostrarToast("Agrega un código", "error");
+
+  // 🔥 Verificar código antes de abrir popup de Google
+  const lleno = await codigoEstaLleno(codigo);
+  if (lleno) return mostrarErrorInline("codigo", "Este código ya está completo 💔");
+
+  const provider = new GoogleAuthProvider();
+
+  try {
+    const result   = await signInWithPopup(auth, provider);
+    const user     = result.user;
+    const userRef  = doc(db, "usuarios", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
+        usuario: user.displayName || "Usuario",
+        email:   user.email,
+        rol:     window.rol,
+        codigo:  codigo
+      });
+
+      // 🔥 Buscar pareja y crearla
+      const q = query(collection(db, "usuarios"), where("codigo", "==", codigo));
+      const querySnapshot = await getDocs(q);
+
+      querySnapshot.forEach(async (docSnap) => {
+        if (docSnap.id !== user.uid) {
+          await setDoc(doc(db, "parejas", codigo), {
+            usuarios:      [user.uid, docSnap.id],
+            fechaCreacion: new Date()
+          });
+          console.log("Pareja creada con Google 💖");
+        }
+      });
+    }
+
+    const snapFinal = await getDoc(userRef);
+    const datos     = snapFinal.data();
+
+    window.location.href = datos.rol === "enviara"
+      ? "secundario.html"
+      : "principal.html";
+
+  } catch (error) {
+    manejarErrorFirebase(error.code);
+  }
+});
+
 // ===== ERRORES FIREBASE =====
 function manejarErrorFirebase(code) {
   const errores = {
     "auth/email-already-in-use": { campo: "email",    msg: "Este correo ya está registrado" },
-    "auth/invalid-email":        { campo: "email",    msg: "El formato del correo no es válido" },
+    "auth/invalid-email":        { campo: "email",    msg: "El correo no es válido" },
     "auth/weak-password":        { campo: "password", msg: "Mínimo 6 caracteres" },
     "auth/user-not-found":       { campo: null,       msg: "No encontramos ese usuario" },
     "auth/wrong-password":       { campo: null,       msg: "Correo o contraseña incorrectos" },
     "auth/invalid-credential":   { campo: null,       msg: "Correo o contraseña incorrectos" },
     "auth/too-many-requests":    { campo: null,       msg: "Demasiados intentos, intenta más tarde" },
+    "auth/popup-closed-by-user": { campo: null,       msg: "Cerraste la ventana de Google" },
   };
 
   const err = errores[code];
