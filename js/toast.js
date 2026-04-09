@@ -3,19 +3,19 @@ function mostrarToast(mensaje, tipo = "exito") {
 
   const estilos = {
     exito: {
-      bg:     "bg-green-50 border border-green-500",
-      texto:  "text-green-700",
-      icono:  "✅"
+      bg:    "bg-green-100 border border-green-500",
+      texto: "text-green-800",
+      icono: "✅"
     },
     error: {
-      bg:     "bg-red-50 border border-red-500",
-      texto:  "text-red-700",
-      icono:  "❗"
+      bg:    "bg-red-100 border border-red-500",
+      texto: "text-red-800",
+      icono: "❗"
     },
     info: {
-      bg:     "bg-pink-50 border border-pink-500",
-      texto:  "text-pink-700",
-      icono:  "💖"
+      bg:    "bg-pink-100 border border-pink-500",
+      texto: "text-pink-800",
+      icono: "💖"
     },
   };
 
