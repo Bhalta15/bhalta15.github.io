@@ -12,11 +12,6 @@ const inputCodigo  = document.getElementById("codigo");
 const msg          = document.getElementById("codigoMsg");
 const btnGenerar   = document.getElementById("btnGenerar");
 
-// ===== CAMPOS GOOGLE =====
-const inputEmail    = document.getElementById("email");
-const inputPassword = document.getElementById("password");
-const btnGoogle     = document.getElementById("btnGoogle");
-
 btnGoogle.addEventListener("click", () => {
   const activo = inputEmail.disabled;
 
