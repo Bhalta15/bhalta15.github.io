@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Love</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#EC4899">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Daily Love">
+  <link rel="apple-touch-icon" href="Daily L.png">
+  <style>
+    @keyframes giroContorno {
+      0%   { box-shadow: 0 0 8px 2px rgba(236,72,153,0.8), 0 0 0 0 transparent; }
+      25%  { box-shadow: 0 0 8px 2px rgba(236,72,153,0.2), 0 0 8px 2px rgba(236,72,153,0.8); }
+      50%  { box-shadow: 0 0 0 0 transparent, 0 0 8px 2px rgba(236,72,153,0.8); }
+      75%  { box-shadow: 0 0 8px 2px rgba(236,72,153,0.8), 0 0 0 0 transparent; }
+      100% { box-shadow: 0 0 8px 2px rgba(236,72,153,0.8), 0 0 0 0 transparent; }
+    }
+    @keyframes giroContornoAzul {
+      0%   { box-shadow: 0 0 8px 2px rgba(59,130,246,0.8), 0 0 0 0 transparent; }
+      25%  { box-shadow: 0 0 8px 2px rgba(59,130,246,0.2), 0 0 8px 2px rgba(59,130,246,0.8); }
+      50%  { box-shadow: 0 0 0 0 transparent, 0 0 8px 2px rgba(59,130,246,0.8); }
+      75%  { box-shadow: 0 0 8px 2px rgba(59,130,246,0.8), 0 0 0 0 transparent; }
+      100% { box-shadow: 0 0 8px 2px rgba(59,130,246,0.8), 0 0 0 0 transparent; }
+    }
+    @keyframes rebote {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(1.08); }
+      60%  { transform: scale(0.96); }
+      80%  { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+    .brillo-rosa  { animation: giroContorno 2s linear infinite; }
+    .brillo-azul  { animation: giroContornoAzul 2s linear infinite; }
+    .rebote-card  { animation: rebote 0.6s ease forwards; }
+  </style>
+</head>
+<body class="bg-pink-50 min-h-screen font-sans">
+
+<!-- HEADER -->
+<header class="bg-white shadow-md py-4 px-6 flex items-center">
+  <button id="menuBtn" class="px-2 py-1 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200">
+    &#9776;
+  </button>
+  <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">Daily Love</h1>
+  <div class="ml-auto text-gray-700 font-semibold hidden sm:block">
+    Hola, <span id="userName"></span> ❤️
+  </div>
+</header>
+
+<!-- OVERLAY -->
+<div id="overlay" class="fixed inset-0 bg-black bg-opacity-40 hidden z-40"></div>
+
+<!-- MENÚ -->
+<nav id="sideMenu" aria-label="Menú principal"
+  class="fixed top-0 left-0 h-full w-64 bg-white shadow-md transform -translate-x-full transition-transform duration-300 z-50 p-6">
+  <h2 class="text-xl font-bold text-pink-600 mb-6">Menú</h2>
+  <ul class="flex flex-col gap-3">
+    <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="inicio">Inicio</button></li>
+    <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="mensajes">Mensajes</button></li>
+    <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="fotos">Fotos</button></li>
+    <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="canciones">Canciones</button></li>
+    <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-pink-100" data-section="frases">Frases</button></li>
+    <li><hr class="my-2 border-pink-100"></li>
+    <li><button id="btnCerrarSesion" class="w-full text-left px-4 py-2 rounded hover:bg-red-100 text-red-500">Cerrar sesión</button></li>
+  </ul>
+</nav>
+
+<!-- MODAL NUEVO CONTENIDO -->
+<div id="modal"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 opacity-0 transition-opacity duration-300 p-4">
+  <div class="bg-white p-6 rounded-lg w-full max-w-md">
+    <h3 class="text-lg font-bold text-pink-600 mb-4">Nuevo contenido</h3>
+    <textarea id="inputTexto" class="w-full border rounded p-3 mb-3 hidden" placeholder="Escribe algo..."></textarea>
+    <div id="inputCancionDiv" class="hidden mb-3 flex flex-col gap-3">
+      <textarea id="inputDescCancion" class="w-full border rounded p-3 resize-none" rows="2" placeholder="Descripción 🎵"></textarea>
+      <input id="inputLinkCancion" class="w-full border rounded p-3" placeholder="Pega el link de YouTube...">
+    </div>
+    <input type="file" id="inputFile" class="w-full border rounded p-3 mb-3 hidden" accept="image/*">
+    <img id="previewImagen" class="hidden mb-3 rounded max-h-40 mx-auto object-contain">
+    <div class="flex justify-end gap-2">
+      <button id="cancelar" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition">Cancelar</button>
+      <button id="guardar" class="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div id="modalEditar"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 opacity-0 transition-opacity duration-300 p-4">
+  <div class="bg-white p-6 rounded-lg w-full max-w-md">
+    <h3 class="text-lg font-bold text-pink-600 mb-4">Editar</h3>
+    <textarea id="editTexto" class="w-full border rounded p-3 mb-3 hidden" placeholder="Edita tu mensaje..."></textarea>
+    <div id="editCancionDiv" class="hidden mb-3 flex flex-col gap-3">
+      <textarea id="editDescCancion" class="w-full border rounded p-3 resize-none" rows="2" placeholder="Descripción 🎵"></textarea>
+      <input id="editLinkCancion" class="w-full border rounded p-3" placeholder="Link de YouTube...">
+    </div>
+    <div class="flex justify-end gap-2">
+      <button id="cancelarEditar" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition">Cancelar</button>
+      <button id="guardarEditar" class="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOTO GRANDE -->
+<div id="modalFoto"
+  class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-lg p-4 max-w-lg w-full relative">
+    <button id="btnCerrarFoto" class="absolute top-2 right-2 text-gray-500 hover:text-black text-xl">✕</button>
+    <img id="imagenGrande" src="" alt="Foto" class="w-full max-h-[70vh] object-contain rounded mb-4">
+    <div class="flex justify-center">
+      <a id="btnDescargar" download class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">
+        ⬇ Descargar
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- MENÚ FLOTANTE (al mantener picada una card) -->
+<div id="menuFlotante"
+  class="fixed hidden bg-white rounded-xl shadow-xl z-[9998] p-2 flex flex-col gap-1 min-w-[140px]">
+  <button id="btnReaccionar"
+    class="px-4 py-2 text-left text-pink-600 hover:bg-pink-50 rounded-lg text-sm font-semibold">
+    ❤️ Reaccionar
+  </button>
+  <button id="btnEditar"
+    class="px-4 py-2 text-left text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-semibold hidden">
+    ✏️ Editar
+  </button>
+</div>
+
+<!-- CONTENIDO -->
+<main class="p-6">
+
+  <!-- INICIO -->
+  <div id="inicio" class="section">
+    <section class="mb-6 text-center">
+      <h2 class="text-xl font-semibold text-gray-700 mb-2">
+        Bienvenido, <span id="userNameMain"></span> ❤️
+      </h2>
+    </section>
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-pink-600 mb-2">Mensajes diarios</h3>
+        <ul class="listaMensajes"></ul>
+      </div>
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-pink-600 mb-2">Fotos</h3>
+        <div class="listaFotos grid grid-cols-2 gap-2"></div>
+      </div>
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-pink-600 mb-2">Canciones</h3>
+        <ul class="listaCanciones"></ul>
+      </div>
+      <div class="bg-white shadow rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-pink-600 mb-2">Frases</h3>
+        <ul class="listaFrases"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENSAJES -->
+  <div id="mensajes" class="section hidden">
+    <div class="flex justify-between mb-6">
+      <h2 class="text-xl font-semibold text-pink-600">Mensajes</h2>
+      <button onclick="abrirModal('mensaje')" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">+ Nuevo</button>
+    </div>
+    <div id="mensajesContainer" class="space-y-3"></div>
+  </div>
+
+  <!-- FOTOS -->
+  <div id="fotos" class="section hidden">
+    <div class="flex justify-between mb-6">
+      <h2 class="text-xl font-semibold text-pink-600">Fotos</h2>
+      <button onclick="abrirModal('foto')" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">+ Nuevo</button>
+    </div>
+    <div id="fotosContainer" class="space-y-3"></div>
+  </div>
+
+  <!-- CANCIONES -->
+  <div id="canciones" class="section hidden">
+    <div class="flex justify-between mb-6">
+      <h2 class="text-xl font-semibold text-pink-600">Canciones</h2>
+      <button onclick="abrirModal('cancion')" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">+ Nuevo</button>
+    </div>
+    <div id="cancionesContainer" class="space-y-3"></div>
+  </div>
+
+  <!-- FRASES -->
+  <div id="frases" class="section hidden">
+    <div class="flex justify-between mb-6">
+      <h2 class="text-xl font-semibold text-pink-600">Frases</h2>
+      <button onclick="abrirModal('frase')" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">+ Nuevo</button>
+    </div>
+    <div id="frasesContainer" class="space-y-3"></div>
+  </div>
+
+</main>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
