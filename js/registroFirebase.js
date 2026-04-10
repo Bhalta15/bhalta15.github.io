@@ -126,8 +126,14 @@ btnRegistrar.addEventListener("click", async () => {
       }
     });
 
-    mostrarToast("Te enviamos un correo para verificar tu cuenta 💌", "info");
-    setTimeout(() => window.location.href = "registro.html", 2500);
+   mostrarToast("Te enviamos un correo para verificar tu cuenta 💌", "info");
+
+// Cambiar a login sin recargar
+document.getElementById("registerForm").classList.add("hidden");
+document.getElementById("registerForm").classList.remove("flex");
+
+document.getElementById("loginForm").classList.remove("hidden");
+document.getElementById("loginForm").classList.add("flex");
 
   } catch (error) {
     manejarErrorFirebase(error.code);
