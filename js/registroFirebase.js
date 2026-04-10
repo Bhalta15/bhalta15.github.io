@@ -126,7 +126,7 @@ btnRegistrar.addEventListener("click", async () => {
       }
     });
 
-   mostrarToast("Te enviamos un correo para verificar tu cuenta 💌", "info");
+   mostrarToast("Te enviamos un correo para verificar tu cuenta", "info");
 
 // Cambiar a login sin recargar
 document.getElementById("registerForm").classList.add("hidden");
@@ -159,7 +159,7 @@ btnIniciar.addEventListener("click", async () => {
     const user = userCredential.user;
 
     if (!user.emailVerified) {
-      mostrarToast("Verifica tu correo primero 💌", "error");
+      mostrarToast("Verifica tu correo primero", "error");
       return;
     }
 
