@@ -13,6 +13,13 @@ const btnGenerar   = document.getElementById("btnGenerar");
 
 // ===== CAMBIO LOGIN / REGISTER =====
 btnLogin.onclick = () => {
+  // Limpiar registro
+  document.getElementById("usuario").value = "";
+  document.getElementById("email").value = "";
+  document.getElementById("password").value = "";
+  document.getElementById("codigo").value = "";
+  window.genero = "";
+
   registerForm.classList.add("hidden");
   registerForm.classList.remove("flex");
   loginForm.classList.remove("hidden");
@@ -20,6 +27,10 @@ btnLogin.onclick = () => {
 };
 
 btnRegister.onclick = () => {
+  // Limpiar login
+  document.getElementById("loginEmail").value = "";
+  document.getElementById("loginPassword").value = "";
+
   loginForm.classList.add("hidden");
   loginForm.classList.remove("flex");
   registerForm.classList.remove("hidden");

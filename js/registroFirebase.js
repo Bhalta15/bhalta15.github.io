@@ -126,7 +126,23 @@ btnRegistrar.addEventListener("click", async () => {
       }
     });
 
-   mostrarToast("Te enviamos un correo para verificar tu cuenta", "info");
+   mostrarToast("Te enviamos un correo para verificar tu cuenta 💌", "info");
+   // Limpiar formulario de registro
+document.getElementById("usuario").value = "";
+document.getElementById("email").value = "";
+document.getElementById("password").value = "";
+document.getElementById("codigo").value = "";
+document.getElementById("codigoMsg").textContent = "";
+
+// Resetear género
+window.genero = "";
+
+// Resetear estilos de botones
+document.getElementById("btnHombre").classList.remove("bg-blue-500", "text-white");
+document.getElementById("btnHombre").classList.add("bg-blue-100", "text-blue-600");
+
+document.getElementById("btnMujer").classList.remove("bg-pink-500", "text-white");
+document.getElementById("btnMujer").classList.add("bg-pink-100", "text-pink-600");
 
 // Cambiar a login sin recargar
 document.getElementById("registerForm").classList.add("hidden");
@@ -159,7 +175,7 @@ btnIniciar.addEventListener("click", async () => {
     const user = userCredential.user;
 
     if (!user.emailVerified) {
-      mostrarToast("Verifica tu correo primero", "error");
+      mostrarToast("Verifica tu correo primero 💌", "error");
       return;
     }
 
