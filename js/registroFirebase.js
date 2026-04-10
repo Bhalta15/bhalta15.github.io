@@ -36,12 +36,10 @@ function mostrarPrimerError(campos) {
 
 function mensajeVacio(id) {
   const mensajes = {
-    usuario:       "El nombre es requerido",
+    usuario:       "El usuario es requerido",
     email:         "El correo es requerido",
     password:      "La contraseña es requerida",
     codigo:        "El código es requerido",
-    loginEmail:    "El correo es requerido",
-    loginPassword: "La contraseña es requerida",
   };
   return mensajes[id] || "Este campo es requerido";
 }
