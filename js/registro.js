@@ -4,10 +4,9 @@ const loginForm    = document.getElementById("loginForm");
 const btnLogin     = document.getElementById("btnLogin");
 const btnRegister  = document.getElementById("btnRegister");
 
-const rolEnviara   = document.getElementById("rolEnviara");
-const rolVera      = document.getElementById("rolVera");
+const btnHombre    = document.getElementById("btnHombre");
+const btnMujer     = document.getElementById("btnMujer");
 
-const codigoDiv    = document.getElementById("codigoDiv");
 const inputCodigo  = document.getElementById("codigo");
 const msg          = document.getElementById("codigoMsg");
 const btnGenerar   = document.getElementById("btnGenerar");
@@ -27,39 +26,30 @@ btnRegister.onclick = () => {
   registerForm.classList.add("flex");
 };
 
-// ===== ROLES =====
-window.rol = "";
+// ===== GÉNERO =====
+window.genero = "";
 
-function setRolActivo(rolSeleccionado) {
-  window.rol = rolSeleccionado;
+function setGeneroActivo(generoSeleccionado) {
+  window.genero = generoSeleccionado;
 
-  rolEnviara.classList.remove("bg-pink-500", "text-white");
-  rolEnviara.classList.add("bg-pink-100", "text-pink-600");
-  rolVera.classList.remove("bg-pink-500", "text-white");
-  rolVera.classList.add("bg-pink-100", "text-pink-600");
+  // Reset ambos botones
+  btnHombre.classList.remove("bg-blue-500", "text-white");
+  btnHombre.classList.add("bg-blue-100", "text-blue-600");
+  btnMujer.classList.remove("bg-pink-500", "text-white");
+  btnMujer.classList.add("bg-pink-100", "text-pink-600");
 
-  const btnActivo = rolSeleccionado === "enviara" ? rolEnviara : rolVera;
-  btnActivo.classList.remove("bg-pink-100", "text-pink-600");
-  btnActivo.classList.add("bg-pink-500", "text-white");
-
-  codigoDiv.classList.remove("hidden");
-  inputCodigo.value = "";
-  msg.textContent   = "";
+  // Marcar el activo
+  if (generoSeleccionado === "hombre") {
+    btnHombre.classList.remove("bg-blue-100", "text-blue-600");
+    btnHombre.classList.add("bg-blue-500", "text-white");
+  } else {
+    btnMujer.classList.remove("bg-pink-100", "text-pink-600");
+    btnMujer.classList.add("bg-pink-500", "text-white");
+  }
 }
 
-rolEnviara.onclick = () => {
-  setRolActivo("enviara");
-  inputCodigo.placeholder = "Escribe tu código o genéralo";
-  msg.textContent         = "Puedes escribirlo o generarlo";
-  btnGenerar.classList.remove("hidden");
-};
-
-rolVera.onclick = () => {
-  setRolActivo("vera");
-  inputCodigo.placeholder = "Ingresa el código de tu pareja";
-  msg.textContent         = "Pide el código a tu pareja";
-  btnGenerar.classList.add("hidden");
-};
+btnHombre.onclick = () => setGeneroActivo("hombre");
+btnMujer.onclick  = () => setGeneroActivo("mujer");
 
 // ===== GENERAR CODIGO =====
 btnGenerar.onclick = () => {
