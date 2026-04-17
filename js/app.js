@@ -555,7 +555,8 @@ function renderPorFecha(tipo, datos) {
   let html = "";
   Object.keys(grupos).forEach((grupo, index) => {
     const id    = `grupo-${tipo}-${index}`;
-    const esHoy = grupo === "Hoy";
+    const abiertoGuardado = gruposAbiertos[id];
+    const esHoy = grupo === "Hoy" || abiertoGuardado;
 
     html += `
       <div class="mt-4">
