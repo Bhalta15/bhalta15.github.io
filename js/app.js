@@ -1,9 +1,14 @@
 // ===== FIREBASE =====
 import { db, auth } from "./firebase.js";
-import { onAuthStateChanged, signOut }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, getDoc, getDocs, collection, addDoc, updateDoc, onSnapshot, query, where }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  onAuthStateChanged,
+  signOut,
+  browserLocalPersistence,
+  setPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  doc, getDoc, collection, addDoc, updateDoc, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { mostrarToast } from "./toast.js";
 
 // ===== ESTADO GLOBAL =====
@@ -11,9 +16,6 @@ let codigoPareja  = null;
 let miUid         = null;
 let miGenero      = null;
 let unsubscribe   = null;
-let cardActual    = null; // card seleccionada con long press
-let docActual     = null; // documento de Firestore de la card seleccionada
-let timerPress    = null;
 let gruposAbiertos = {};
 
 // ===== ELEMENTOS =====
@@ -41,33 +43,32 @@ const editDescCancion  = document.getElementById('editDescCancion');
 const editLinkCancion  = document.getElementById('editLinkCancion');
 const cancelarEditar   = document.getElementById('cancelarEditar');
 const guardarEditar    = document.getElementById('guardarEditar');
-const menuFlotante     = document.getElementById('menuFlotante');
-const btnReaccionar    = document.getElementById('btnReaccionar');
-const btnEditar        = document.getElementById('btnEditar');
 
-// ===== SESIÓN =====
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "registro.html";
-    return;
-  }
-
-  try {
-    const snap = await getDoc(doc(db, "usuarios", user.uid));
-    if (snap.exists()) {
-      const datos  = snap.data();
-      miUid        = user.uid;
-      miGenero     = datos.genero;
-      codigoPareja = datos.codigo;
-
-      document.getElementById("userName").textContent     = datos.usuario;
-      document.getElementById("userNameMain").textContent = datos.usuario;
-      mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
+// ===== SESIÓN PERSISTENTE =====
+setPersistence(auth, browserLocalPersistence).then(() => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "registro.html";
+      return;
     }
-    iniciarTiempoReal();
-  } catch (error) {
-    console.error("Error cargando usuario:", error);
-  }
+
+    try {
+      const snap = await getDoc(doc(db, "usuarios", user.uid));
+      if (snap.exists()) {
+        const datos  = snap.data();
+        miUid        = user.uid;
+        miGenero     = datos.genero;
+        codigoPareja = datos.codigo;
+
+        document.getElementById("userName").textContent     = datos.usuario;
+        document.getElementById("userNameMain").textContent = datos.usuario;
+        mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
+      }
+      iniciarTiempoReal();
+    } catch (error) {
+      console.error("Error cargando usuario:", error);
+    }
+  });
 });
 
 // ===== CERRAR SESIÓN =====
@@ -85,7 +86,6 @@ menuBtn.onclick = () => {
 
 overlay.onclick = () => {
   cerrarMenu();
-  cerrarMenuFlotante();
 };
 
 function cerrarMenu() {
@@ -213,12 +213,12 @@ guardar.onclick = async () => {
 async function guardarEnFirebase(contenido) {
   try {
     await addDoc(collection(db, "parejas", codigoPareja, "contenido"), {
-      tipo:      tipoActual,
-      contenido: contenido,
-      fecha:     new Date(),
-      autorUid:  miUid,
+      tipo:        tipoActual,
+      contenido:   contenido,
+      fecha:       new Date(),
+      autorUid:    miUid,
       autorGenero: miGenero,
-       reacciones: {}
+      reaccion:    null
     });
     mostrarToast("¡Guardado!", "exito");
     cerrarModal();
@@ -228,97 +228,7 @@ async function guardarEnFirebase(contenido) {
   }
 }
 
-// ===== MENÚ FLOTANTE (long press) =====
-function cerrarMenuFlotante() {
-  menuFlotante.classList.add('hidden');
-  cardActual = null;
-  docActual  = null;
-}
-
-function mostrarMenuFlotante(e, cardEl, d) {
-  cardActual = cardEl;
-  docActual  = d;
-
-  // Mostrar u ocultar botón editar según si es mío
-  if (d.autorUid === miUid) {
-    btnEditar.classList.remove('hidden');
-  } else {
-    btnEditar.classList.add('hidden');
-  }
-
-  // Posicionar el menú cerca del toque
-  const x = e.clientX || (e.touches?.[0]?.clientX) || 100;
-  const y = e.clientY || (e.touches?.[0]?.clientY) || 100;
-
-  menuFlotante.style.left = `${Math.min(x, window.innerWidth - 160)}px`;
-  menuFlotante.style.top  = `${Math.min(y, window.innerHeight - 120)}px`;
-  menuFlotante.classList.remove('hidden');
-}
-
-// Cerrar menú flotante al tocar fuera
-document.addEventListener('click', (e) => {
-  if (!menuFlotante.contains(e.target)) {
-    cerrarMenuFlotante();
-  }
-});
-
-// ===== REACCIONAR =====
-async function toggleReaccion(d) {
-  if (d.autorUid === miUid) {
-    mostrarToast("No puedes reaccionar a tu propio contenido", "info");
-    return;
-  }
-
-  try {
-    const ref = doc(db, "parejas", codigoPareja, "contenido", d.id);
-
-    const yaReacciono = d.reacciones?.[miUid];
-
-    await updateDoc(ref, {
-      [`reacciones.${miUid}`]: yaReacciono
-        ? null
-        : miGenero
-    });
-
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-function agregarDobleTap(el, d) {
-  let lastTap = 0;
-
-  const ejecutar = (e) => {
-    e.stopPropagation();
-    toggleReaccion(d);
-  };
-
-  const handler = (e) => {
-    const now = Date.now();
-    const diff = now - lastTap;
-
-    if (diff < 300 && diff > 0) {
-      lastTap = 0;
-      ejecutar(e);
-    } else {
-      lastTap = now;
-    }
-  };
-
-  // 📱 móvil
-  el.addEventListener("touchend", handler, { passive: true });
-
-  // 💻 PC
-  el.addEventListener("dblclick", ejecutar);
-}
-
 // ===== EDITAR =====
-btnEditar.onclick = () => {
-  if (!docActual) return;
-  cerrarMenuFlotante();
-  abrirModalEditar(docActual);
-};
-
 function abrirModalEditar(d) {
   editTexto.classList.add('hidden');
   editCancionDiv.classList.add('hidden');
@@ -340,6 +250,7 @@ function abrirModalEditar(d) {
     }
   }
 
+  modalEditar._docActual = d;
   modalEditar.classList.remove('hidden');
   modalEditar.classList.add('flex');
   setTimeout(() => {
@@ -360,13 +271,14 @@ function cerrarModalEditar() {
 cancelarEditar.onclick = cerrarModalEditar;
 
 guardarEditar.onclick = async () => {
-  if (!docActual) return;
+  const d = modalEditar._docActual;
+  if (!d) return;
   let nuevoContenido = "";
 
-  if (docActual.tipo === "mensaje" || docActual.tipo === "frase") {
+  if (d.tipo === "mensaje" || d.tipo === "frase") {
     nuevoContenido = editTexto.value.trim();
     if (!nuevoContenido) return mostrarToast("Escribe algo", "error");
-  } else if (docActual.tipo === "cancion") {
+  } else if (d.tipo === "cancion") {
     const desc = editDescCancion.value.trim();
     const link = editLinkCancion.value.trim();
     if (!desc) return mostrarToast("Escribe la descripción", "error");
@@ -375,7 +287,7 @@ guardarEditar.onclick = async () => {
   }
 
   try {
-    await updateDoc(doc(db, "parejas", codigoPareja, "contenido", docActual.id), {
+    await updateDoc(doc(db, "parejas", codigoPareja, "contenido", d.id), {
       contenido: nuevoContenido
     });
     mostrarToast("¡Editado!", "exito");
@@ -385,6 +297,38 @@ guardarEditar.onclick = async () => {
     console.error(error);
   }
 };
+
+// ===== REACCIONAR (doble tap / doble click) =====
+async function toggleReaccion(d) {
+  if (d.autorUid === miUid) {
+    mostrarToast("No puedes reaccionar a tu propio contenido", "info");
+    return;
+  }
+
+  const ref = doc(db, "parejas", codigoPareja, "contenido", d.id);
+  const yaReacciono = d.reaccion === miGenero;
+
+  await updateDoc(ref, {
+    reaccion: yaReacciono ? null : miGenero
+  });
+}
+
+function agregarDobleTap(el, d) {
+  let lastTap = 0;
+
+  const handler = () => {
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      lastTap = 0;
+      toggleReaccion(d);
+    } else {
+      lastTap = now;
+    }
+  };
+
+  el.addEventListener("touchend", handler, { passive: true });
+  el.addEventListener("dblclick", handler);
+}
 
 // ===== TIEMPO REAL =====
 function iniciarTiempoReal() {
@@ -404,31 +348,7 @@ function iniciarTiempoReal() {
     });
 
     renderTodo(datos);
-
-    
   });
-}
-
-// ===== SCROLL Y ANIMAR REACCIÓN =====
-async function scrollYAnimarReaccion(docId) {
-  const cardEl = document.querySelector(`[data-id="${docId}"]`);
-  if (!cardEl) return;
-
-  cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
-
-  setTimeout(() => {
-    cardEl.classList.add('rebote-card');
-    setTimeout(() => cardEl.classList.remove('rebote-card'), 700);
-  }, 600);
-
-  // Marcar como vista
-  try {
-    await updateDoc(doc(db, "parejas", codigoPareja, "contenido", docId), {
-      reaccionVistaPor: miUid
-    });
-  } catch (error) {
-    console.error("Error marcando reacción vista:", error);
-  }
 }
 
 // ===== FECHAS =====
@@ -456,56 +376,21 @@ function borderPorGenero(genero) {
     : "border-2 border-pink-300";
 }
 
-// ===== BRILLO GIRATORIO (solo lo ve la contraparte) =====
-function brilloClass(d) {
-  return "";
-}
-
-// ===== REACCIÓN HEART =====
+// ===== CORAZÓN SEGÚN GÉNERO DE QUIEN REACCIONÓ =====
 function heartClass(d) {
-  const reacciones = d.reacciones || {};
-
-  const usuarios = Object.entries(reacciones);
-
-  if (usuarios.length === 0) return "";
-
-  const [uid, genero] = usuarios[0];
-
-  return genero === "hombre" ? "💙" : "❤️";
-}
-
-// ===== LONG PRESS EN CARDS =====
-function agregarLongPress(el, d) {
-  let timer = null;
-
-  const iniciar = (e) => {
-    timer = setTimeout(() => {
-      mostrarMenuFlotante(e, el, d);
-    }, 500);
-  };
-
-  const cancelar = () => {
-    clearTimeout(timer);
-  };
-
-  el.addEventListener('mousedown',  iniciar);
-  el.addEventListener('touchstart', iniciar, { passive: true });
-  el.addEventListener('mouseup',    cancelar);
-  el.addEventListener('mouseleave', cancelar);
-  el.addEventListener('touchend',   cancelar);
+  if (!d.reaccion) return "";
+  return d.reaccion === "hombre" ? "💙" : "❤️";
 }
 
 // ===== CREAR CARD =====
 function crearCardHTML(d) {
   const borde   = borderPorGenero(d.autorGenero);
-  const brillo  = brilloClass(d);
   const corazon = heartClass(d);
-  const esReciente = brillo !== "";
 
   if (d.tipo === "mensaje" || d.tipo === "frase") {
     return `
       <div data-id="${d.id}"
-        class="bg-white shadow-lg rounded-xl p-5 ${borde} ${brillo} relative transition-all duration-300">
+        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
         <p class="text-gray-700 text-lg">"${d.contenido}"</p>
         ${corazon ? `<span class="absolute bottom-1 right-1 text-lg">${corazon}</span>` : ""}
       </div>`;
@@ -514,9 +399,10 @@ function crearCardHTML(d) {
   if (d.tipo === "foto") {
     return `
       <div data-id="${d.id}"
-        class="bg-white shadow-lg rounded-xl p-3 cursor-pointer ${borde} ${brillo} relative transition-all duration-300"
-        onclick="abrirFoto('${d.contenido}')">
-        <img src="${d.contenido}" alt="Foto" class="w-full h-48 object-cover rounded-lg hover:opacity-90 transition">
+        class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none">
+        <img src="${d.contenido}" alt="Foto"
+          class="w-full h-48 object-cover rounded-lg hover:opacity-90 transition cursor-pointer"
+          onclick="abrirFoto('${d.contenido}')">
         ${corazon ? `<span class="absolute bottom-1 right-1 text-lg">${corazon}</span>` : ""}
       </div>`;
   }
@@ -530,7 +416,7 @@ function crearCardHTML(d) {
 
     return `
       <div data-id="${d.id}"
-        class="bg-white shadow-lg rounded-xl p-5 ${borde} ${brillo} relative transition-all duration-300">
+        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
         ${desc ? `<p class="text-gray-700 text-base mb-3">"${desc}"</p>` : ""}
         <div class="flex items-center justify-between">
           <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm truncate max-w-[70%]">${link}</a>
@@ -567,9 +453,9 @@ function renderPorFecha(tipo, datos) {
 
   let html = "";
   Object.keys(grupos).forEach((grupo, index) => {
-    const id    = `grupo-${tipo}-${index}`;
+    const id             = `grupo-${tipo}-${index}`;
     const abiertoGuardado = gruposAbiertos[id];
-    const esHoy = grupo === "Hoy" || abiertoGuardado;
+    const esHoy          = grupo === "Hoy" || abiertoGuardado;
 
     html += `
       <div class="mt-4">
@@ -590,14 +476,11 @@ function renderPorFecha(tipo, datos) {
 
   cont.innerHTML = html;
 
-  // Agregar long press a cada card
+  // Asignar doble tap a cada card
   datos.forEach(d => {
-  const cardEl = cont.querySelector(`[data-id="${d.id}"]`);
-  if (cardEl) {
-    agregarLongPress(cardEl, d); // lo puedes dejar o quitar luego
-    agregarDobleTap(cardEl, d);  // 👈 nuevo
-  }
-});
+    const cardEl = cont.querySelector(`[data-id="${d.id}"]`);
+    if (cardEl) agregarDobleTap(cardEl, d);
+  });
 }
 
 // ===== TOGGLE GRUPO =====
@@ -610,12 +493,12 @@ window.toggleGrupo = (id, el) => {
     contenedor.classList.remove("max-h-[2000px]", "opacity-100");
     contenedor.classList.add("max-h-0", "opacity-0");
     if (flecha) flecha.style.transform = "rotate(-90deg)";
-    gruposAbiertos[id] = false; // 🔥 guardar estado
+    gruposAbiertos[id] = false;
   } else {
     contenedor.classList.remove("max-h-0", "opacity-0");
     contenedor.classList.add("max-h-[2000px]", "opacity-100");
     if (flecha) flecha.style.transform = "rotate(0deg)";
-    gruposAbiertos[id] = true; // 🔥 guardar estado
+    gruposAbiertos[id] = true;
   }
 };
 
