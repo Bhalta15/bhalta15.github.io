@@ -263,27 +263,39 @@ document.addEventListener('click', (e) => {
 });
 
 // ===== REACCIONAR =====
-btnReaccionar.onclick = async () => {
-  if (!docActual) return;
-  cerrarMenuFlotante();
-
+async function toggleReaccion(d, cardEl) {
   try {
-    await updateDoc(doc(db, "parejas", codigoPareja, "contenido", docActual.id), {
-      reaccion: true,
+    const nuevaReaccion = !d.reaccion;
+
+    await updateDoc(doc(db, "parejas", codigoPareja, "contenido", d.id), {
+      reaccion: nuevaReaccion,
       reaccionVistaPor: null
     });
 
-    // Animación inmediata para quien reacciona
-    if (cardActual) {
-      cardActual.classList.add('rebote-card');
-      setTimeout(() => cardActual.classList.remove('rebote-card'), 700);
+    // Animación SOLO si se activa
+    if (nuevaReaccion && cardEl) {
+      cardEl.classList.add('rebote-card');
+      setTimeout(() => cardEl.classList.remove('rebote-card'), 700);
     }
 
-    mostrarToast("¡Reaccionaste! ❤️", "exito");
   } catch (error) {
     console.error("Error al reaccionar:", error);
   }
-};
+}
+function agregarDobleTap(el, d) {
+  let lastTap = 0;
+
+  el.addEventListener("click", () => {
+    const now = Date.now();
+
+    if (now - lastTap < 300) {
+      // DOBLE TAP detectado
+      toggleReaccion(d, el);
+    }
+
+    lastTap = now;
+  });
+}
 
 // ===== EDITAR =====
 btnEditar.onclick = () => {
@@ -436,8 +448,7 @@ function borderPorGenero(genero) {
 
 // ===== BRILLO GIRATORIO (solo lo ve la contraparte) =====
 function brilloClass(d) {
-  if (d.autorUid === miUid) return ""; // yo no veo el brillo de lo mío
-  return d.autorGenero === "hombre" ? "brillo-azul" : "brillo-rosa";
+  return "";
 }
 
 // ===== REACCIÓN HEART =====
@@ -562,9 +573,12 @@ function renderPorFecha(tipo, datos) {
 
   // Agregar long press a cada card
   datos.forEach(d => {
-    const cardEl = cont.querySelector(`[data-id="${d.id}"]`);
-    if (cardEl) agregarLongPress(cardEl, d);
-  });
+  const cardEl = cont.querySelector(`[data-id="${d.id}"]`);
+  if (cardEl) {
+    agregarLongPress(cardEl, d); // lo puedes dejar o quitar luego
+    agregarDobleTap(cardEl, d);  // 👈 nuevo
+  }
+});
 }
 
 // ===== TOGGLE GRUPO =====
