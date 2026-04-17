@@ -218,8 +218,7 @@ async function guardarEnFirebase(contenido) {
       fecha:     new Date(),
       autorUid:  miUid,
       autorGenero: miGenero,
-      reaccion:  false,
-      reaccionVistaPor: null
+       reacciones: {}
     });
     mostrarToast("¡Guardado!", "exito");
     cerrarModal();
@@ -264,41 +263,56 @@ document.addEventListener('click', (e) => {
 });
 
 // ===== REACCIONAR =====
-async function toggleReaccion(d, cardEl) {
-  try {
-    const nuevaReaccion = !d.reaccion;
+async function toggleReaccion(d) {
+  if (d.autorUid === miUid) {
+    mostrarToast("No puedes reaccionar a tu propio contenido", "info");
+    return;
+  }
 
-    await updateDoc(doc(db, "parejas", codigoPareja, "contenido", d.id), {
-      reaccion: nuevaReaccion,
-      reaccionVistaPor: null
+  try {
+    const ref = doc(db, "parejas", codigoPareja, "contenido", d.id);
+
+    const yaReacciono = d.reacciones?.[miUid];
+
+    await updateDoc(ref, {
+      [`reacciones.${miUid}`]: yaReacciono ? false : true
     });
 
-    // Animación SOLO si se activa
-    if (nuevaReaccion && cardEl) {
-      cardEl.classList.add('rebote-card');
-      setTimeout(() => cardEl.classList.remove('rebote-card'), 700);
-    }
-
   } catch (error) {
-    console.error("Error al reaccionar:", error);
+    console.error(error);
   }
 }
+
 function agregarDobleTap(el, d) {
   let lastTap = 0;
+  let tapTimeout = null;
 
   const handler = (e) => {
-    e.stopPropagation(); // 🔥 EVITA que llegue al toggleGrupo
+    e.stopPropagation();
 
     const now = Date.now();
+    const diff = now - lastTap;
 
-    if (now - lastTap < 300) {
-      toggleReaccion(d, el);
+    if (diff < 300 && diff > 0) {
+      clearTimeout(tapTimeout);
+
+      // DOBLE TAP CONFIRMADO 💖
+      toggleReaccion(d);
+
+      lastTap = 0;
+    } else {
+      lastTap = now;
+
+      tapTimeout = setTimeout(() => {
+        lastTap = 0;
+      }, 350);
     }
-
-    lastTap = now;
   };
 
-  el.addEventListener("touchend", handler);
+  // móvil
+  el.addEventListener("touchend", handler, { passive: true });
+
+  // PC (mouse)
   el.addEventListener("click", handler);
 }
 
@@ -395,12 +409,7 @@ function iniciarTiempoReal() {
 
     renderTodo(datos);
 
-    // Verificar reacciones pendientes de ver
-    datos.forEach(d => {
-      if (d.reaccion && d.reaccionVistaPor !== miUid && d.autorUid !== miUid) {
-        setTimeout(() => scrollYAnimarReaccion(d.id), 500);
-      }
-    });
+    
   });
 }
 
@@ -458,7 +467,13 @@ function brilloClass(d) {
 
 // ===== REACCIÓN HEART =====
 function heartClass(d) {
-  return d.reaccion ? "❤️" : "";
+  const reacciono = d.reacciones?.[miUid];
+
+  if (!reacciono) return "";
+
+  return miGenero === "hombre"
+    ? "💙"
+    : "❤️";
 }
 
 // ===== LONG PRESS EN CARDS =====
@@ -494,7 +509,7 @@ function crearCardHTML(d) {
       <div data-id="${d.id}"
         class="bg-white shadow-lg rounded-xl p-5 ${borde} ${brillo} relative transition-all duration-300">
         <p class="text-gray-700 text-lg">"${d.contenido}"</p>
-        ${corazon ? `<span class="absolute bottom-2 right-3 text-lg">${corazon}</span>` : ""}
+        ${corazon ? `<span class="absolute bottom-1 right-1 text-lg">${corazon}</span>` : ""}
       </div>`;
   }
 
@@ -504,7 +519,7 @@ function crearCardHTML(d) {
         class="bg-white shadow-lg rounded-xl p-3 cursor-pointer ${borde} ${brillo} relative transition-all duration-300"
         onclick="abrirFoto('${d.contenido}')">
         <img src="${d.contenido}" alt="Foto" class="w-full h-48 object-cover rounded-lg hover:opacity-90 transition">
-        ${corazon ? `<span class="absolute bottom-2 right-3 text-lg">${corazon}</span>` : ""}
+        ${corazon ? `<span class="absolute bottom-1 right-1 text-lg">${corazon}</span>` : ""}
       </div>`;
   }
 
@@ -526,7 +541,7 @@ function crearCardHTML(d) {
             Escuchar ▶
           </a>
         </div>
-        ${corazon ? `<span class="absolute bottom-2 right-3 text-lg">${corazon}</span>` : ""}
+        ${corazon ? `<span class="absolute bottom-1 right-1 text-lg">${corazon}</span>` : ""}
       </div>`;
   }
 
