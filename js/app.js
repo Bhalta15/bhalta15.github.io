@@ -379,7 +379,7 @@ function borderPorGenero(genero) {
 // ===== CORAZÓN SEGÚN GÉNERO DE QUIEN REACCIONÓ =====
 function heartClass(d) {
   if (!d.reaccion) return "";
-  return d.reaccion === "hombre" ? "💙" : "❤️";
+  return d.reaccion === "hombre" ? "🩵" : "🩷";
 }
 
 // ===== CREAR CARD =====
