@@ -7,16 +7,21 @@ import {
   setPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  doc, getDoc, collection, addDoc, updateDoc, onSnapshot
+  doc, getDoc, collection, addDoc, updateDoc, deleteDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { mostrarToast } from "./toast.js";
 
 // ===== ESTADO GLOBAL =====
-let codigoPareja  = null;
-let miUid         = null;
-let miGenero      = null;
-let unsubscribe   = null;
+let codigoPareja   = null;
+let miUid          = null;
+let miGenero       = null;
+let unsubscribe    = null;
 let gruposAbiertos = {};
+let datosGlobal    = []; // copia de todos los datos para modo eliminar
+
+// Modo eliminar por sección
+const modoEliminar   = { mensaje: false, foto: false, cancion: false, frase: false };
+const seleccionados  = { mensaje: new Set(), foto: new Set(), cancion: new Set(), frase: new Set() };
 
 // ===== ELEMENTOS =====
 const menuBtn          = document.getElementById('menuBtn');
@@ -37,12 +42,18 @@ const imagenGrande     = document.getElementById('imagenGrande');
 const btnDescargar     = document.getElementById('btnDescargar');
 const btnCerrarFoto    = document.getElementById('btnCerrarFoto');
 const modalEditar      = document.getElementById('modalEditar');
+const modalEditarTitulo= document.getElementById('modalEditarTitulo');
 const editTexto        = document.getElementById('editTexto');
 const editCancionDiv   = document.getElementById('editCancionDiv');
 const editDescCancion  = document.getElementById('editDescCancion');
 const editLinkCancion  = document.getElementById('editLinkCancion');
+const editFile         = document.getElementById('editFile');
+const editPreviewImagen= document.getElementById('editPreviewImagen');
 const cancelarEditar   = document.getElementById('cancelarEditar');
 const guardarEditar    = document.getElementById('guardarEditar');
+const modalEliminar    = document.getElementById('modalEliminar');
+const cancelarEliminar = document.getElementById('cancelarEliminar');
+const aceptarEliminar  = document.getElementById('aceptarEliminar');
 
 // ===== SESIÓN PERSISTENTE =====
 setPersistence(auth, browserLocalPersistence).then(() => {
@@ -51,7 +62,6 @@ setPersistence(auth, browserLocalPersistence).then(() => {
       window.location.href = "registro.html";
       return;
     }
-
     try {
       const snap = await getDoc(doc(db, "usuarios", user.uid));
       if (snap.exists()) {
@@ -59,7 +69,6 @@ setPersistence(auth, browserLocalPersistence).then(() => {
         miUid        = user.uid;
         miGenero     = datos.genero;
         codigoPareja = datos.codigo;
-
         document.getElementById("userName").textContent     = datos.usuario;
         document.getElementById("userNameMain").textContent = datos.usuario;
         mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
@@ -83,10 +92,7 @@ menuBtn.onclick = () => {
   sideMenu.classList.remove('-translate-x-full');
   overlay.classList.remove('hidden');
 };
-
-overlay.onclick = () => {
-  cerrarMenu();
-};
+overlay.onclick = () => cerrarMenu();
 
 function cerrarMenu() {
   sideMenu.classList.add('-translate-x-full');
@@ -139,7 +145,6 @@ function cerrarModal() {
     modal.classList.remove('flex');
   }, 300);
 }
-
 cancelar.onclick = cerrarModal;
 
 // ===== MODAL FOTO GRANDE =====
@@ -149,7 +154,6 @@ function abrirFoto(src) {
   modalFoto.classList.remove('hidden');
   modalFoto.classList.add('flex');
 }
-
 btnCerrarFoto.onclick = () => {
   modalFoto.classList.add('hidden');
   modalFoto.classList.remove('flex');
@@ -177,7 +181,7 @@ function comprimirImagen(file) {
   });
 }
 
-// ===== PREVIEW IMAGEN =====
+// ===== PREVIEW IMAGEN (nuevo) =====
 inputFile.addEventListener("change", async () => {
   const archivo = inputFile.files[0];
   if (archivo) {
@@ -187,10 +191,19 @@ inputFile.addEventListener("change", async () => {
   }
 });
 
+// ===== PREVIEW IMAGEN (reemplazar) =====
+editFile.addEventListener("change", async () => {
+  const archivo = editFile.files[0];
+  if (archivo) {
+    const img = await comprimirImagen(archivo);
+    editPreviewImagen.src = img;
+    editPreviewImagen.classList.remove("hidden");
+  }
+});
+
 // ===== GUARDAR =====
 guardar.onclick = async () => {
   let contenido = "";
-
   if (tipoActual === "mensaje" || tipoActual === "frase") {
     contenido = inputTexto.value.trim();
     if (!contenido) return mostrarToast("Escribe algo primero", "error");
@@ -205,7 +218,6 @@ guardar.onclick = async () => {
     if (!archivo) return mostrarToast("Selecciona una imagen", "error");
     contenido = await comprimirImagen(archivo);
   }
-
   if (!codigoPareja) return mostrarToast("No se encontró tu código de pareja", "error");
   await guardarEnFirebase(contenido);
 };
@@ -232,14 +244,19 @@ async function guardarEnFirebase(contenido) {
 function abrirModalEditar(d) {
   editTexto.classList.add('hidden');
   editCancionDiv.classList.add('hidden');
+  editFile.classList.add('hidden');
+  editPreviewImagen.classList.add('hidden');
   editTexto.value        = "";
   editDescCancion.value  = "";
   editLinkCancion.value  = "";
+  editFile.value         = "";
 
   if (d.tipo === "mensaje" || d.tipo === "frase") {
+    modalEditarTitulo.textContent = "Editar";
     editTexto.classList.remove('hidden');
     editTexto.value = d.contenido;
   } else if (d.tipo === "cancion") {
+    modalEditarTitulo.textContent = "Editar";
     editCancionDiv.classList.remove('hidden');
     try {
       const parsed = JSON.parse(d.contenido);
@@ -248,6 +265,9 @@ function abrirModalEditar(d) {
     } catch {
       editLinkCancion.value = d.contenido;
     }
+  } else if (d.tipo === "foto") {
+    modalEditarTitulo.textContent = "Reemplazar foto";
+    editFile.classList.remove('hidden');
   }
 
   modalEditar._docActual = d;
@@ -267,7 +287,6 @@ function cerrarModalEditar() {
     modalEditar.classList.remove('flex');
   }, 300);
 }
-
 cancelarEditar.onclick = cerrarModalEditar;
 
 guardarEditar.onclick = async () => {
@@ -284,16 +303,20 @@ guardarEditar.onclick = async () => {
     if (!desc) return mostrarToast("Escribe la descripción", "error");
     if (!link) return mostrarToast("Escribe el link", "error");
     nuevoContenido = JSON.stringify({ desc, link });
+  } else if (d.tipo === "foto") {
+    const archivo = editFile.files[0];
+    if (!archivo) return mostrarToast("Selecciona una imagen", "error");
+    nuevoContenido = await comprimirImagen(archivo);
   }
 
   try {
     await updateDoc(doc(db, "parejas", codigoPareja, "contenido", d.id), {
       contenido: nuevoContenido
     });
-    mostrarToast("¡Editado!", "exito");
+    mostrarToast(d.tipo === "foto" ? "¡Foto reemplazada!" : "¡Editado!", "exito");
     cerrarModalEditar();
   } catch (error) {
-    mostrarToast("Error al editar", "error");
+    mostrarToast("Error al guardar", "error");
     console.error(error);
   }
 };
@@ -304,121 +327,123 @@ async function toggleReaccion(d) {
     mostrarToast("No puedes reaccionar a tu propio contenido", "info");
     return;
   }
-
   const ref = doc(db, "parejas", codigoPareja, "contenido", d.id);
   const yaReacciono = d.reaccion === miGenero;
-
-  await updateDoc(ref, {
-    reaccion: yaReacciono ? null : miGenero
-  });
+  await updateDoc(ref, { reaccion: yaReacciono ? null : miGenero });
 }
 
-// ===== MENÚ DOBLE TAP =====
-let menuAbierto = null; // referencia al menú actualmente visible
-
-function cerrarMenuCard() {
-  if (menuAbierto) {
-    menuAbierto.remove();
-    menuAbierto = null;
-  }
-}
-
-// Cierra el menú si se toca/clica fuera de él
-document.addEventListener("click", (e) => {
-  if (menuAbierto && !menuAbierto.contains(e.target)) {
-    cerrarMenuCard();
-  }
-});
-document.addEventListener("touchstart", (e) => {
-  if (menuAbierto && !menuAbierto.contains(e.target)) {
-    cerrarMenuCard();
-  }
-}, { passive: true });
-
-function mostrarMenuCard(cardEl, d) {
-  // Si ya hay uno abierto, cerrarlo primero
-  cerrarMenuCard();
-
-  const esMio = d.autorUid === miUid;
-
-  const menu = document.createElement("div");
-  menu.className = [
-    "absolute top-2 right-2 z-30",
-    "bg-white border border-gray-200 rounded-xl shadow-lg",
-    "flex flex-col overflow-hidden",
-    "text-sm"
-  ].join(" ");
-
-  // Botón "Me encanta" — solo si el contenido no es mío
-  if (!esMio) {
-    const btnReaccion = document.createElement("button");
-    const yaReacciono = d.reaccion === miGenero;
-    btnReaccion.textContent = yaReacciono ? "💔 Quitar reacción" : "🤍 Me encanta";
-    btnReaccion.className = "px-4 py-2 hover:bg-pink-50 text-left text-gray-700 whitespace-nowrap";
-    btnReaccion.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      cerrarMenuCard();
-      await toggleReaccion(d);
-    });
-    menu.appendChild(btnReaccion);
-  }
-
-  // Botón "Editar" — solo si el contenido es mío y no es foto
-  if (esMio && d.tipo !== "foto") {
-    const btnEditar = document.createElement("button");
-    btnEditar.textContent = "✏️ Editar";
-    btnEditar.className = "px-4 py-2 hover:bg-pink-50 text-left text-gray-700 whitespace-nowrap";
-    btnEditar.addEventListener("click", (e) => {
-      e.stopPropagation();
-      cerrarMenuCard();
-      abrirModalEditar(d);
-    });
-    menu.appendChild(btnEditar);
-  }
-
-  // Si el menú no tiene opciones (ej: foto propia), no mostrar nada
-  if (menu.children.length === 0) return;
-
-  cardEl.style.position = "relative";
-  cardEl.appendChild(menu);
-  menuAbierto = menu;
-}
-
+// ===== DOBLE TAP =====
 function agregarDobleTap(el, d) {
   let lastTap = 0;
 
   const handler = (e) => {
-    e.stopPropagation();
+    // Ignorar si el tap fue en el botón ojito
+    if (e.target.closest('.btn-ver-foto')) return;
+
     const now = Date.now();
     if (now - lastTap < 300) {
       lastTap = 0;
-      mostrarMenuCard(el, d);
+      if (d.autorUid === miUid) {
+        // Es mía: abrir editar
+        abrirModalEditar(d);
+      } else {
+        // Es de mi pareja: reaccionar
+        toggleReaccion(d);
+      }
     } else {
       lastTap = now;
     }
   };
 
-  el.addEventListener("touchend", handler, { passive: false });
+  el.addEventListener("touchend", handler, { passive: true });
   el.addEventListener("dblclick", handler);
+}
+
+// ===== MODO ELIMINAR =====
+let tipoEliminarActual = "";
+
+window.activarModoEliminar = (tipo) => {
+  modoEliminar[tipo] = true;
+  seleccionados[tipo].clear();
+  tipoEliminarActual = tipo;
+
+  // Ocultar botones normales, mostrar palomita y tache
+  document.getElementById(`btnNuevo${capitalizar(tipo)}`).classList.add('hidden');
+  document.getElementById(`btnEliminar${capitalizar(tipo)}`).classList.add('hidden');
+  document.getElementById(`btnConfirmar${capitalizar(tipo)}`).classList.remove('hidden');
+  document.getElementById(`btnCancelar${capitalizar(tipo)}`).classList.remove('hidden');
+
+  rerenderSeccion(tipo);
+};
+
+window.cancelarModoEliminar = (tipo) => {
+  modoEliminar[tipo] = false;
+  seleccionados[tipo].clear();
+
+  document.getElementById(`btnNuevo${capitalizar(tipo)}`).classList.remove('hidden');
+  document.getElementById(`btnEliminar${capitalizar(tipo)}`).classList.remove('hidden');
+  document.getElementById(`btnConfirmar${capitalizar(tipo)}`).classList.add('hidden');
+  document.getElementById(`btnCancelar${capitalizar(tipo)}`).classList.add('hidden');
+
+  rerenderSeccion(tipo);
+};
+
+window.confirmarEliminar = (tipo) => {
+  if (seleccionados[tipo].size === 0) {
+    mostrarToast("No seleccionaste ningún elemento", "error");
+    return;
+  }
+  tipoEliminarActual = tipo;
+  modalEliminar.classList.remove('hidden');
+  modalEliminar.classList.add('flex');
+};
+
+cancelarEliminar.onclick = () => {
+  modalEliminar.classList.add('hidden');
+  modalEliminar.classList.remove('flex');
+};
+
+aceptarEliminar.onclick = async () => {
+  const tipo = tipoEliminarActual;
+  const ids  = [...seleccionados[tipo]];
+  modalEliminar.classList.add('hidden');
+  modalEliminar.classList.remove('flex');
+
+  try {
+    await Promise.all(ids.map(id =>
+      deleteDoc(doc(db, "parejas", codigoPareja, "contenido", id))
+    ));
+    mostrarToast("¡Eliminado!", "exito");
+    cancelarModoEliminar(tipo);
+  } catch (error) {
+    mostrarToast("Error al eliminar", "error");
+    console.error(error);
+  }
+};
+
+function capitalizar(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function rerenderSeccion(tipo) {
+  const datos = datosGlobal.filter(d => d.tipo === tipo);
+  renderPorFecha(tipo, datos);
 }
 
 // ===== TIEMPO REAL =====
 function iniciarTiempoReal() {
   if (!codigoPareja) return;
   if (unsubscribe) unsubscribe();
-
   const ref = collection(db, "parejas", codigoPareja, "contenido");
-
   unsubscribe = onSnapshot(ref, (snapshot) => {
     const datos = [];
     snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
-
     datos.sort((a, b) => {
       const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
       const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
       return fb - fa;
     });
-
+    datosGlobal = datos;
     renderTodo(datos);
   });
 }
@@ -448,12 +473,10 @@ function borderPorGenero(genero) {
     : "border-2 border-pink-300";
 }
 
-// ===== CORAZÓN SVG CONTORNO SEGÚN GÉNERO =====
-// Punto 1: SVG contorno, sin relleno, color según género de quien reaccionó
-// Posición: superior derecho (top-2 right-2)
+// ===== CORAZÓN SVG CONTORNO =====
 function heartSVG(d) {
   if (!d.reaccion) return "";
-  const color = d.reaccion === "hombre" ? "#93c5fd" : "#f9a8d4"; // blue-300 / pink-300
+  const color = d.reaccion === "hombre" ? "#93c5fd" : "#f9a8d4";
   return `
     <span class="absolute top-2 right-2 pointer-events-none">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
@@ -463,27 +486,68 @@ function heartSVG(d) {
     </span>`;
 }
 
+// ===== ICONO OJO PARA FOTOS =====
+function ojitaSVG() {
+  return `
+    <button class="btn-ver-foto absolute bottom-2 right-2 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shadow-md hover:bg-purple-700 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+        fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>`;
+}
+
 // ===== CREAR CARD =====
-function crearCardHTML(d) {
-  const borde   = borderPorGenero(d.autorGenero);
-  const corazon = heartSVG(d);
+function crearCardHTML(d, enModoEliminar) {
+  const borde    = borderPorGenero(d.autorGenero);
+  const corazon  = heartSVG(d);
+  const esMio    = d.autorUid === miUid;
+  const selec    = seleccionados[d.tipo]?.has(d.id);
+
+  // Estilos modo eliminar
+  let extraClases = "";
+  let overlay     = "";
+  if (enModoEliminar) {
+    if (esMio) {
+      // Seleccionable: resaltado si está seleccionado
+      extraClases = selec
+        ? "ring-2 ring-red-400 opacity-100 cursor-pointer"
+        : "opacity-100 cursor-pointer";
+      overlay = selec
+        ? `<span class="absolute inset-0 bg-red-100 bg-opacity-40 rounded-xl pointer-events-none flex items-center justify-center">
+             <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+             </svg>
+           </span>`
+        : "";
+    } else {
+      // De mi pareja: tenue, no seleccionable
+      extraClases = "opacity-30 pointer-events-none";
+    }
+  }
 
   if (d.tipo === "mensaje" || d.tipo === "frase") {
     return `
       <div data-id="${d.id}"
-        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
-        <p class="text-gray-700 text-lg">"${d.contenido}"</p>
+        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${extraClases}">
+        <p class="text-gray-700 text-lg break-all">"${d.contenido}"</p>
         ${corazon}
+        ${overlay}
       </div>`;
   }
 
   if (d.tipo === "foto") {
     return `
       <div data-id="${d.id}"
-        class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none">
-        <img src="${d.contenido}" alt="Foto"
-          class="w-full h-48 object-cover rounded-lg hover:opacity-90 transition cursor-pointer">
+        class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none ${extraClases}">
+        <div class="w-full h-48 overflow-hidden rounded-lg">
+          <img src="${d.contenido}" alt="Foto"
+            class="w-full h-full object-cover">
+        </div>
         ${corazon}
+        ${enModoEliminar ? "" : ojitaSVG()}
+        ${overlay}
       </div>`;
   }
 
@@ -496,8 +560,8 @@ function crearCardHTML(d) {
 
     return `
       <div data-id="${d.id}"
-        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
-        ${desc ? `<p class="text-gray-700 text-base mb-3">"${desc}"</p>` : ""}
+        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${extraClases}">
+        ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
         <div class="flex items-center justify-between">
           <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm truncate max-w-[70%]">${link}</a>
           <a href="${link}" target="_blank"
@@ -506,6 +570,7 @@ function crearCardHTML(d) {
           </a>
         </div>
         ${corazon}
+        ${overlay}
       </div>`;
   }
 
@@ -523,6 +588,8 @@ function renderPorFecha(tipo, datos) {
 
   const cont = document.querySelector(contenedorMap[tipo]);
   if (!cont) return;
+
+  const enModoEliminar = modoEliminar[tipo];
 
   const grupos = {};
   datos.forEach(d => {
@@ -549,27 +616,55 @@ function renderPorFecha(tipo, datos) {
           </span>
         </div>
         <div id="${id}" class="space-y-3 overflow-hidden transition-all duration-500 ease-in-out ${esHoy ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}">
-          ${grupos[grupo].map(d => crearCardHTML(d)).join("")}
+          ${grupos[grupo].map(d => crearCardHTML(d, enModoEliminar)).join("")}
         </div>
       </div>`;
   });
 
   cont.innerHTML = html;
 
-  // Asignar eventos a cada card
+  // Asignar eventos
   datos.forEach(d => {
     const cardEl = cont.querySelector(`[data-id="${d.id}"]`);
     if (!cardEl) return;
 
-    // Doble tap para mostrar menú
-    agregarDobleTap(cardEl, d);
+    if (enModoEliminar) {
+      // Solo cards mías son clickeables para seleccionar
+      if (d.autorUid === miUid) {
+        cardEl.addEventListener("click", () => toggleSeleccion(d.tipo, d.id, cardEl, d));
+      }
+    } else {
+      // Doble tap normal
+      agregarDobleTap(cardEl, d);
 
-    // Click en imagen de foto
-    if (d.tipo === "foto") {
-      const imgEl = cardEl.querySelector("img");
-      if (imgEl) imgEl.addEventListener("click", () => abrirFoto(d.contenido));
+      // Ojito para fotos
+      if (d.tipo === "foto") {
+        const ojito = cardEl.querySelector(".btn-ver-foto");
+        if (ojito) ojito.addEventListener("click", (e) => {
+          e.stopPropagation();
+          abrirFoto(d.contenido);
+        });
+      }
     }
   });
+}
+
+// ===== TOGGLE SELECCIÓN MODO ELIMINAR =====
+function toggleSeleccion(tipo, id, cardEl, d) {
+  if (seleccionados[tipo].has(id)) {
+    seleccionados[tipo].delete(id);
+  } else {
+    seleccionados[tipo].add(id);
+  }
+  // Re-renderizar solo la card cambiada para actualizar el checkmark
+  const nuevoHTML = crearCardHTML(d, true);
+  const temp = document.createElement('div');
+  temp.innerHTML = nuevoHTML;
+  const nuevaCard = temp.firstElementChild;
+
+  // Re-asignar evento click
+  nuevaCard.addEventListener("click", () => toggleSeleccion(tipo, id, nuevaCard, d));
+  cardEl.replaceWith(nuevaCard);
 }
 
 // ===== TOGGLE GRUPO =====
@@ -603,16 +698,18 @@ function renderInicio(datos) {
   const frases    = datos.filter(d => d.tipo === "frase").slice(0, 3);
 
   setHTML(".listaMensajes",
-    mensajes.map(m => `<li class="text-gray-700 text-sm mb-1">"${m.contenido}" - ${formatearFechaCorta(m.fecha)}</li>`).join("")
+    mensajes.map(m => `<li class="text-gray-700 text-sm mb-1 break-all">"${m.contenido}" - ${formatearFechaCorta(m.fecha)}</li>`).join("")
   );
 
   document.querySelectorAll(".listaFotos").forEach(el => {
     el.innerHTML = fotos.map((f, i) => `
-      <img data-foto-idx="${i}" src="${f.contenido}" alt="Foto"
-        class="rounded-lg w-full h-32 object-cover cursor-pointer hover:opacity-90 transition">`
+      <div class="w-full h-32 overflow-hidden rounded-lg cursor-pointer" data-foto-idx="${i}">
+        <img src="${f.contenido}" alt="Foto"
+          class="w-full h-full object-cover hover:opacity-90 transition">
+      </div>`
     ).join("");
-    el.querySelectorAll("img").forEach((img, i) => {
-      img.addEventListener("click", () => abrirFoto(fotos[i].contenido));
+    el.querySelectorAll("[data-foto-idx]").forEach((div, i) => {
+      div.addEventListener("click", () => abrirFoto(fotos[i].contenido));
     });
   });
 
@@ -623,7 +720,7 @@ function renderInicio(datos) {
       catch { link = c.contenido; }
       return `
         <li class="mb-2">
-          ${desc ? `<p class="text-gray-600 text-sm">"${desc}"</p>` : ""}
+          ${desc ? `<p class="text-gray-600 text-sm break-all">"${desc}"</p>` : ""}
           <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm">
             ${link.length > 35 ? link.substring(0, 35) + "..." : link}
           </a>
@@ -631,7 +728,7 @@ function renderInicio(datos) {
     }).join("")
   );
   setHTML(".listaFrases",
-    frases.map(f => `<li class="text-gray-700 text-sm mb-1">"${f.contenido}"</li>`).join("")
+    frases.map(f => `<li class="text-gray-700 text-sm mb-1 break-all">"${f.contenido}"</li>`).join("")
   );
 }
 
