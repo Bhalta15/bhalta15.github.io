@@ -62,7 +62,8 @@ async function iniciarOneSignal() {
   try {
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
-      serviceWorkerPath: "/DailyLove/sw.js",
+      sserviceWorkerPath: "/DailyLove/OneSignalSDKWorker.js",  // ← apunta a tu subcarpeta
+      serviceWorkerParam: { scope: "/DailyLove/" },            // ← scope correcto
       notifyButton: { enable: false },
       allowLocalhostAsSecureOrigin: true
     });
