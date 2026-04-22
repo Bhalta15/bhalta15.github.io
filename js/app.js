@@ -60,13 +60,13 @@ const aceptarEliminar   = document.getElementById('aceptarEliminar');
 // ===== ONESIGNAL INIT =====
 async function iniciarOneSignal() {
   try {
-    await OneSignal.init({
-      appId: ONESIGNAL_APP_ID,
-      sserviceWorkerPath: "/DailyLove/OneSignalSDKWorker.js",  // ← apunta a tu subcarpeta
-      serviceWorkerParam: { scope: "/DailyLove/" },            // ← scope correcto
-      notifyButton: { enable: false },
-      allowLocalhostAsSecureOrigin: true
-    });
+   await OneSignal.init({
+  appId: ONESIGNAL_APP_ID,
+  serviceWorkerPath: "/OneSignalSDKWorker.js",  // raíz, sin /DailyLove/
+  serviceWorkerParam: { scope: "/DailyLove/" }, // scope de tu app
+  notifyButton: { enable: false },
+  allowLocalhostAsSecureOrigin: true
+});
 
     // Pedir permiso
     const permission = await OneSignal.Notifications.requestPermission();
