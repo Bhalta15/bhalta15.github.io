@@ -63,9 +63,12 @@ async function iniciarOneSignal() {
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
 
-      // 🔥 IMPORTANTE: rutas correctas para GitHub Pages
+      // 🔥 rutas correctas para GitHub Pages
       serviceWorkerPath: "/DailyLove/OneSignalSDKWorker.js",
       serviceWorkerUpdaterPath: "/DailyLove/OneSignalSDKUpdaterWorker.js",
+
+      // 🔥 ESTO ES LO MÁS IMPORTANTE
+      serviceWorkerParam: { scope: "/DailyLove/" },
 
       notifyButton: { enable: false },
       allowLocalhostAsSecureOrigin: true
@@ -73,26 +76,22 @@ async function iniciarOneSignal() {
 
     console.log("✅ OneSignal inicializado");
 
-    // Pedir permiso
     const permission = await OneSignal.Notifications.requestPermission();
     console.log("Permiso:", permission);
 
     if (!permission) return;
 
-    // 🔥 ESPERAR a que OneSignal tenga el ID listo
     OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
       const playerId = event.current.id;
 
-      console.log("🔥 Player ID detectado:", playerId);
+      console.log("🔥 Player ID:", playerId);
 
       if (playerId && miUid) {
-        await setDoc(
-          doc(db, "usuarios", miUid),
-          { oneSignalId: playerId },
-          { merge: true }
-        );
+        await setDoc(doc(db, "usuarios", miUid), {
+          oneSignalId: playerId
+        }, { merge: true });
 
-        console.log("✅ oneSignalId guardado en Firestore");
+        console.log("✅ oneSignalId guardado");
       }
     });
 
