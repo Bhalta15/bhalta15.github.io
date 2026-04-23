@@ -1,48 +1,22 @@
-// inicio.js
-
-console.log("Inicio cargado correctamente 💖");
-
+// ===== SERVICE WORKER =====
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js")
     .then(() => console.log("PWA lista 💖"))
     .catch(err => console.log("Error SW:", err));
 }
 
-// 🔔 PEDIR PERMISO
-if ("Notification" in window) {
-  Notification.requestPermission().then((permission) => {
-    if (permission === "granted") {
-      console.log("Permiso concedido 💌");
-      obtenerToken();
-    } else {
-      console.log("Permiso denegado");
+// ===== REDIRECCIÓN AUTOMÁTICA SI YA HAY SESIÓN =====
+import { auth } from "./js/firebase.js";
+import {
+  onAuthStateChanged,
+  browserLocalPersistence,
+  setPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+setPersistence(auth, browserLocalPersistence).then(() => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      window.location.href = "app.html";
     }
   });
-}
-
-
-import { initializeApp } from "firebase/app";
-import { getMessaging, getToken } from "firebase/messaging";
-
-const firebaseConfig = {
-  // tu config aquí
-};
-
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
-
-function obtenerToken() {
-  getToken(messaging, {
-    vapidKey: "TU_VAPID_KEY"
-  }).then((currentToken) => {
-    if (currentToken) {
-      console.log("🔥 TOKEN:", currentToken);
-
-      // Aquí puedes copiarlo o guardarlo
-    } else {
-      console.log("No se pudo obtener token");
-    }
-  }).catch((err) => {
-    console.log("Error al obtener token:", err);
-  });
-}
+});
