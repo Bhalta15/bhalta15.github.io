@@ -38,12 +38,10 @@
   </button>
   <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">Daily Love</h1>
   <div class="ml-auto flex items-center gap-3">
-
   <!-- Nombre -->
   <div class="text-gray-700 font-semibold hidden sm:block">
     Hola, <span id="userName"></span> ❤️
   </div>
-
   <!-- ICONO PERFIL -->
   <button id="btnPerfil" class="w-10 h-10 rounded-full overflow-hidden border-2 border-pink-400">
     <img id="fotoPerfilHeader" src="https://via.placeholder.com/100"
@@ -285,99 +283,6 @@
 
 </main>
 
-
-
-
-<!-- MODAL PERFIL -->
-<div id="modalPerfil"
-  class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
-
-  <div class="bg-white p-6 rounded-lg w-full max-w-md text-center relative">
-
-    <button id="cerrarPerfil"
-      class="absolute top-2 right-2 text-gray-500 hover:text-black text-xl">✕</button>
-
-    <!-- FOTO -->
-    <div class="flex justify-center mb-4">
-      <img id="fotoPerfil"
-        class="w-24 h-24 rounded-full object-cover border-4 border-pink-400"
-        src="https://ui-avatars.com/api/?name=User&background=EC4899&color=fff">
-    </div>
-
-    <!-- INFO -->
-    <h2 id="nombrePerfil" class="text-xl font-bold text-pink-600 mb-1"></h2>
-    <p id="correoPerfil" class="text-gray-500 text-sm mb-4"></p>
-
-    <!-- BOTONES -->
-    <button id="btnEditarPerfil"
-      class="w-full mb-2 bg-pink-500 text-white py-2 rounded hover:bg-pink-600">
-      Editar perfil
-    </button>
-
-    <button id="btnCerrarSesionPerfil"
-      class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">
-      Cerrar sesión
-    </button>
-
-  </div>
-</div>
-<!-- MODAL EDITAR PERFIL -->
-<div id="modalEditarPerfil"
-  class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
-
-  <div class="bg-white p-6 rounded-lg w-full max-w-md">
-
-    <h2 class="text-xl font-bold text-pink-600 mb-4">Editar perfil</h2>
-
-    <!-- FOTO -->
-    <div class="flex flex-col items-center mb-4">
-      <img id="editFotoPreview"
-        class="w-24 h-24 rounded-full object-cover border-4 border-pink-400 mb-2"
-        src="https://ui-avatars.com/api/?name=User&background=EC4899&color=fff">
-
-     <label class="bg-pink-100 text-pink-600 px-3 py-1 rounded cursor-pointer hover:bg-pink-200">
-  Cambiar foto
-  <input type="file" id="inputFotoPerfil" accept="image/*" class="hidden">
-</label>
-    </div>
-
-    <!-- NOMBRE -->
-    <input id="inputNombrePerfil"
-      class="w-full border rounded p-3 mb-3"
-      placeholder="Nombre">
-
-    <!-- CORREO (solo lectura) -->
-    <input id="inputCorreoPerfil"
-      class="w-full border rounded p-3 mb-3 bg-gray-100"
-      disabled>
-
-    <!-- CONTRASEÑA -->
-    <input id="inputPasswordPerfil"
-      type="password"
-      class="w-full border rounded p-3 mb-4"
-      placeholder="Nueva contraseña (opcional)">
-
-    <!-- BOTONES -->
-    <div class="flex justify-end gap-2">
-      <button id="cancelarEditarPerfil"
-        class="px-4 py-2 bg-gray-300 rounded">
-        Cancelar
-      </button>
-
-      <button id="guardarPerfil"
-        class="px-4 py-2 bg-pink-500 text-white rounded">
-        Guardar
-      </button>
-    </div>
-
-  </div>
-</div>
-
-
-
-
-
 <script type="module" src="js/app.js"></script>
-
 </body>
 </html>

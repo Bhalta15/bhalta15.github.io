@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil - Daily Love</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- PWA -->
+  <meta name="theme-color" content="#EC4899">
+  <link rel="icon" href="Daily L.png" type="image/png">
+</head>
+
+<body class="bg-pink-50 min-h-screen font-sans">
+
+<!-- HEADER -->
+<header class="bg-white shadow-md py-4 px-6 flex items-center relative">
+  <button onclick="history.back()"
+    class="px-2 py-1 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition">
+    ←
+  </button>
+
+  <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">
+    Perfil
+  </h1>
+</header>
+
+<!-- CONTENIDO -->
+<main class="p-6 max-w-md mx-auto">
+
+  <div class="bg-white shadow-lg rounded-2xl p-6 text-center transition-all duration-300">
+
+    <!-- FOTO -->
+    <div class="flex flex-col items-center mb-4">
+      <img id="fotoPerfil"
+        class="w-28 h-28 rounded-full object-cover border-4 border-pink-400 shadow mb-2 transition-all duration-300">
+
+      <button id="btnCambiarFoto"
+        class="hidden text-sm text-pink-500 hover:scale-105 transition">
+        Cambiar foto 📸
+      </button>
+
+      <button id="btnEliminarFoto"
+        class="hidden text-sm text-red-500 hover:scale-105 transition">
+        Quitar foto 🗑️
+      </button>
+    </div>
+
+    <!-- INFO -->
+    <h2 id="nombrePerfil" class="text-xl font-bold text-pink-600 mb-1"></h2>
+
+    <input id="inputNombrePerfil"
+      class="hidden w-full border rounded p-2 text-center mb-2 focus:outline-pink-400 transition"
+      placeholder="Nuevo nombre">
+
+    <!-- 🔐 CONTRASEÑA ACTUAL -->
+    <input id="inputPasswordActual"
+      type="password"
+      class="hidden w-full border rounded p-2 text-center mb-2"
+      placeholder="Contraseña actual">
+
+    <!-- 🔐 NUEVA CONTRASEÑA -->
+    <input id="inputPasswordPerfil"
+      type="password"
+      class="hidden w-full border rounded p-2 text-center mb-2"
+      placeholder="Nueva contraseña">
+
+    <p id="correoPerfil" class="text-gray-500 text-sm mb-6"></p>
+
+    <!-- INPUT FILE -->
+    <input type="file" id="inputFotoPerfil" class="hidden" accept="image/*">
+
+    <!-- BOTONES -->
+    <div class="flex flex-col gap-3">
+
+      <button id="btnEditarPerfil"
+        class="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition shadow hover:scale-105">
+        Editar perfil
+      </button>
+
+      <button id="btnGuardarPerfil"
+        class="hidden w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition shadow hover:scale-105">
+        Guardar cambios
+      </button>
+
+      <button id="btnCancelarPerfil"
+        class="hidden w-full bg-gray-400 text-white py-2 rounded-lg hover:bg-gray-500 transition shadow hover:scale-105">
+        Cancelar
+      </button>
+
+      <button id="btnCerrarSesionPerfil"
+        class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition shadow hover:scale-105">
+        Cerrar sesión
+      </button>
+
+    </div>
+
+  </div>
+
+</main>
+
+<script type="module" src="js/perfil.js"></script>
+
+</body>
+</html>

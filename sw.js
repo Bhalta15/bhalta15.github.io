@@ -2,7 +2,7 @@
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
 // ===== CACHE PWA =====
-const CACHE_NAME = "daily-love-v3";
+const CACHE_NAME = "daily-love-v2";
 
 const urlsToCache = [
   "/",
@@ -37,15 +37,9 @@ self.addEventListener("activate", e => {
   );
 });
 
-
 self.addEventListener("fetch", e => {
   e.respondWith(
     caches.match(e.request)
       .then(res => res || fetch(e.request))
   );
-});
-// hacer que la noti se cierre al abrir app
-self.addEventListener("notificationclick", (e) => {
-  e.notification.close();
-  e.waitUntil(clients.openWindow("/app.html"));
 });
