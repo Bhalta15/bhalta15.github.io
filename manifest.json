@@ -1,8 +1,8 @@
 {
   "name": "Daily Love",
   "short_name": "Daily Love",
-  "start_url": "/DailyLove/",
-  "scope": "/DailyLove/",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffe4e6",
   "theme_color": "#ec4899",
