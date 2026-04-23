@@ -10,6 +10,11 @@ import {
   doc, getDoc, setDoc, collection, addDoc, updateDoc, deleteDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { mostrarToast } from "./toast.js";
+// ===== PARA EDITAR PERFIL Y MAS =====
+import {
+  updatePassword,
+  updateProfile
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // ===== ONESIGNAL APP ID =====
 const ONESIGNAL_APP_ID = "1c802966-0ba1-4c4b-8b5b-7e0d8074f499";
@@ -56,6 +61,23 @@ const guardarEditar     = document.getElementById('guardarEditar');
 const modalEliminar     = document.getElementById('modalEliminar');
 const cancelarEliminar  = document.getElementById('cancelarEliminar');
 const aceptarEliminar   = document.getElementById('aceptarEliminar');
+// ===== PERFIL =====
+const btnPerfil              = document.getElementById("btnPerfil");
+const modalPerfil            = document.getElementById("modalPerfil");
+const cerrarPerfil           = document.getElementById("cerrarPerfil");
+const nombrePerfil           = document.getElementById("nombrePerfil");
+const correoPerfil           = document.getElementById("correoPerfil");
+const fotoPerfil             = document.getElementById("fotoPerfil");
+const fotoPerfilHeader       = document.getElementById("fotoPerfilHeader");
+const btnEditarPerfil        = document.getElementById("btnEditarPerfil");
+const modalEditarPerfil      = document.getElementById("modalEditarPerfil");
+const cancelarEditarPerfil   = document.getElementById("cancelarEditarPerfil");
+const guardarPerfil          = document.getElementById("guardarPerfil");
+const inputNombrePerfil      = document.getElementById("inputNombrePerfil");
+const inputCorreoPerfil      = document.getElementById("inputCorreoPerfil");
+const inputPasswordPerfil    = document.getElementById("inputPasswordPerfil");
+const inputFotoPerfil        = document.getElementById("inputFotoPerfil");
+const editFotoPreview        = document.getElementById("editFotoPreview");
 
 // ===== ONESIGNAL INIT =====
 async function iniciarOneSignal() {
@@ -135,13 +157,139 @@ setPersistence(auth, browserLocalPersistence).then(() => {
         miUid        = user.uid;
         miGenero     = datos.genero;
         codigoPareja = datos.codigo;
+
         document.getElementById("userName").textContent     = datos.usuario;
         document.getElementById("userNameMain").textContent = datos.usuario;
+
+        // ===== PERFIL =====
+        nombrePerfil.textContent = datos.usuario;
+        correoPerfil.textContent = user.email;
+
+        // FOTO
+        if (datos.foto) {
+          fotoPerfil.src = datos.foto;
+          fotoPerfilHeader.src = datos.foto;
+        } else {
+          const avatar = `https://ui-avatars.com/api/?name=${datos.usuario}&background=EC4899&color=fff`;
+          fotoPerfil.src = avatar;
+          fotoPerfilHeader.src = avatar;
+        }
+
+        // ===== EVENTOS (SOLO UNA VEZ) =====
+        if (!btnPerfil.dataset.listener) {
+
+          btnPerfil.onclick = () => {
+            modalPerfil.classList.remove("hidden");
+          };
+
+          cerrarPerfil.onclick = () => {
+            modalPerfil.classList.add("hidden");
+          };
+
+          // click fuera
+          modalPerfil.addEventListener("click", (e) => {
+            if (e.target === modalPerfil) {
+              modalPerfil.classList.add("hidden");
+            }
+          });
+
+          btnEditarPerfil.onclick = () => {
+            modalPerfil.classList.add("hidden");
+            modalEditarPerfil.classList.remove("hidden");
+
+            inputNombrePerfil.value = nombrePerfil.textContent;
+            inputCorreoPerfil.value = correoPerfil.textContent;
+            inputPasswordPerfil.value = "";
+          };
+
+          cancelarEditarPerfil.onclick = () => {
+            modalEditarPerfil.classList.add("hidden");
+          };
+
+          inputFotoPerfil.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const url = URL.createObjectURL(file);
+              editFotoPreview.src = url;
+            }
+          });
+
+          guardarPerfil.onclick = async () => {
+            try {
+              const user = auth.currentUser;
+              if (!user) return;
+
+              const nuevoNombre = inputNombrePerfil.value.trim();
+              const nuevaPass   = inputPasswordPerfil.value.trim();
+              let nuevaFoto     = null;
+
+              if (!nuevoNombre) {
+                return mostrarToast("El nombre no puede estar vacío", "error");
+              }
+
+              // FOTO
+              if (inputFotoPerfil.files[0]) {
+                nuevaFoto = await comprimirImagen(inputFotoPerfil.files[0]);
+              }
+
+              // ACTUALIZAR FIRESTORE
+              const ref = doc(db, "usuarios", miUid);
+
+              const updateData = {
+                usuario: nuevoNombre
+              };
+
+              if (nuevaFoto) {
+                updateData.foto = nuevaFoto;
+              }
+
+              await updateDoc(ref, updateData);
+
+              // ACTUALIZAR PASSWORD
+              if (nuevaPass) {
+                await updatePassword(user, nuevaPass);
+              }
+
+              // ACTUALIZAR UI
+              document.getElementById("userName").textContent = nuevoNombre;
+              document.getElementById("userNameMain").textContent = nuevoNombre;
+              nombrePerfil.textContent = nuevoNombre;
+
+              if (nuevaFoto) {
+                fotoPerfil.src = nuevaFoto;
+                fotoPerfilHeader.src = nuevaFoto;
+              }
+
+              mostrarToast("Perfil actualizado 💖", "exito");
+              modalEditarPerfil.classList.add("hidden");
+
+            } catch (error) {
+              console.error(error);
+
+              if (error.code === "auth/requires-recent-login") {
+                mostrarToast("Por seguridad, vuelve a iniciar sesión para cambiar la contraseña", "info");
+              } else {
+                mostrarToast("Error al actualizar perfil", "error");
+              }
+            }
+          };
+
+          document.getElementById("btnCerrarSesionPerfil").onclick = async () => {
+            if (unsubscribe) unsubscribe();
+            await signOut(auth);
+            window.location.href = "registro.html";
+          };
+
+          // 🔥 MARCAR COMO INICIALIZADO
+          btnPerfil.dataset.listener = "true";
+        }
+
         mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
       }
+
       iniciarTiempoReal();
 
-      // Iniciar OneSignal después de tener el uid y código
+      // ===== ONESIGNAL =====
       if (typeof OneSignal !== "undefined") {
         await iniciarOneSignal();
       } else {
