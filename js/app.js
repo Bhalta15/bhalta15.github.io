@@ -60,10 +60,10 @@ const aceptarEliminar   = document.getElementById('aceptarEliminar');
 // ===== ONESIGNAL INIT =====
 async function iniciarOneSignal() {
   try {
- await OneSignal.init({
+    await OneSignal.init({
   appId: ONESIGNAL_APP_ID,
-  serviceWorkerPath: "/DailyLove/OneSignalSDKWorker.js",
-  serviceWorkerParam: { scope: "/DailyLove/" },
+  serviceWorkerPath: "/OneSignalSDKWorker.js",
+  serviceWorkerParam: { scope: "/" },
   notifyButton: { enable: false },
   allowLocalhostAsSecureOrigin: true
 });
