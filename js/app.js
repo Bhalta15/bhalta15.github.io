@@ -160,6 +160,9 @@ setPersistence(auth, browserLocalPersistence).then(() => {
 // ===== CERRAR SESIÓN =====
 btnCerrarSesion.onclick = async () => {
   if (unsubscribe) unsubscribe();
+  if (miUid) {
+    await setDoc(doc(db, "usuarios", miUid), { oneSignalId: null }, { merge: true });
+  }
   await signOut(auth);
   window.location.href = "registro.html";
 };
