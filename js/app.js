@@ -106,19 +106,19 @@ async function notificarPareja(tipo) {
       frase:   "Te dejaron una frase 💭"
     };
 
-    await fetch("https://onesignal.com/api/v1/notifications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Basic os_v2_app_dsacszqlufgexc23pygya5hutggjzkyozeuumyvwqh5oadm7a4ffs4hqc5xtne7xvvdbelvlptyn5zff7dlywm47atvmoyixgz22r5y"
-      },
-      body: JSON.stringify({
-        app_id:             ONESIGNAL_APP_ID,
-        include_player_ids: [oneSignalId],
-        headings:           { en: "Daily Love 💕" },
-        contents:           { en: mensajesNoti[tipo] || "Tu pareja te dejó algo ❤️" }
-      })
-    });
+    await fetch("https://corsproxy.io/?https://onesignal.com/api/v1/notifications", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Basic os_v2_app_dsacszqlufgexc23pygya5hutggjzkyozeuumyvwqh5oadm7a4ffs4hqc5xtne7xvvdbelvlptyn5zff7dlywm47atvmoyixgz22r5y"
+  },
+  body: JSON.stringify({
+    app_id:             ONESIGNAL_APP_ID,
+    include_player_ids: [oneSignalId],
+    headings:           { en: "Daily Love 💕" },
+    contents:           { en: mensajesNoti[tipo] || "Tu pareja te dejó algo ❤️" }
+  })
+});
   } catch (e) {
     console.error("Error mandando notificación:", e);
   }
