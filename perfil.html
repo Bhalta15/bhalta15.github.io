@@ -15,107 +15,84 @@
 
 <body class="bg-pink-50 min-h-screen font-sans">
 
-<!-- HEADER -->
-<header class="bg-white shadow-md py-4 px-6 flex items-center relative">
-  <button onclick="history.back()"
-    class="px-2 py-1 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition">
-    ←
-  </button>
-
-  <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">
-    Perfil
-  </h1>
-</header>
-
-<!-- CONTENIDO -->
-<main class="p-6 max-w-md mx-auto">
-
-  <div class="bg-white shadow-lg rounded-2xl p-6 text-center">
-
-    <!-- FOTO -->
-    <div class="flex flex-col items-center mb-4">
-      <img id="fotoPerfil"
-        class="w-28 h-28 rounded-full object-cover border-4 border-pink-400 shadow mb-2">
-    </div>
-
-    <!-- NOMBRE -->
-    <h2 id="nombrePerfil" class="text-xl font-bold text-pink-600 mb-1"></h2>
-
-    <!-- CORREO -->
-    <p id="correoPerfil" class="text-gray-500 text-sm mb-4"></p>
-
-    <!-- 🔐 CONTRASEÑA (FAKE) -->
-    <div class="flex items-center justify-center gap-2 mb-6">
-
-      <span class="text-gray-700 font-mono tracking-widest">
-        ••••••••
-      </span>
-
-      <!-- BOTON EDITAR PASSWORD -->
-      <button id="btnEditarPassword"
-        class="text-pink-500 hover:scale-110 transition">
-        ✏️
-      </button>
-
-    </div>
-
-    <!-- BOTÓN CERRAR SESIÓN -->
-    <button id="btnCerrarSesionPerfil"
-      class="w-full border border-red-300 text-red-500 py-2 rounded-lg hover:bg-red-50 transition">
-      Cerrar sesión
+  <!-- HEADER -->
+  <header class="bg-white shadow-md py-4 px-6 flex items-center relative">
+    <button onclick="history.back()" class="px-2 py-1 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition">
+      ←
     </button>
 
-  </div>
+    <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">
+      Perfil
+    </h1>
+  </header>
 
-</main>
+  <!-- CONTENIDO -->
+  <main class="p-6 max-w-md mx-auto">
+    <div class="bg-white shadow-lg rounded-2xl p-6 text-center transition-all duration-300">
 
-<!-- 🔥 MODAL CAMBIAR CONTRASEÑA -->
-<div id="modalPassword"
-  class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+      <!-- FOTO -->
+      <div class="flex flex-col items-center mb-4">
+        <img id="fotoPerfil" class="w-28 h-28 rounded-full object-cover border-4 border-pink-400 shadow mb-2 transition-all duration-300">
 
-  <div class="bg-white rounded-2xl p-6 w-[90%] max-w-sm text-center shadow-xl">
+        <button id="btnCambiarFoto" class="hidden text-sm text-pink-500 hover:scale-105 transition">
+          Cambiar foto 📸
+        </button>
 
-    <h2 class="text-lg font-bold text-pink-600 mb-4">
-      Editar contraseña
-    </h2>
+        <button id="btnEliminarFoto" class="hidden text-sm text-red-500 hover:scale-105 transition">
+          Quitar foto 🗑️
+        </button>
+      </div>
 
-    <!-- ACTUAL -->
-    <input id="inputPasswordActual"
-      type="password"
-      placeholder="Contraseña actual"
-      class="w-full border rounded p-2 mb-3 text-center">
+      <!-- INFO -->
+      <h2 id="nombrePerfil" class="text-xl font-bold text-pink-600 mb-1"></h2>
 
-    <!-- NUEVA -->
-    <input id="inputPasswordNueva"
-      type="password"
-      placeholder="Nueva contraseña"
-      class="w-full border rounded p-2 mb-2 text-center">
+      <input id="inputNombrePerfil"
+        class="hidden w-full border rounded p-2 text-center mb-2 focus:outline-pink-400 transition"
+        placeholder="Nuevo nombre">
 
-    <!-- ERROR -->
-    <p id="errorPassword"
-      class="text-red-500 text-sm mb-3 hidden">
-      Contraseña incorrecta
-    </p>
+      <!-- 🔐 CONTRASEÑA ACTUAL -->
+      <input id="inputPasswordActual" type="password"
+        class="hidden w-full border rounded p-2 text-center mb-2"
+        placeholder="Contraseña actual">
 
-    <!-- BOTONES -->
-    <div class="flex gap-2">
+      <!-- 🔐 NUEVA CONTRASEÑA -->
+      <input id="inputPasswordPerfil" type="password"
+        class="hidden w-full border rounded p-2 text-center mb-2"
+        placeholder="Nueva contraseña">
 
-      <button id="btnConfirmarPassword"
-        class="flex-1 border border-green-300 text-green-600 py-2 rounded-lg hover:bg-green-50 transition">
-        Guardar
-      </button>
+      <p id="correoPerfil" class="text-gray-500 text-sm mb-6"></p>
 
-      <button id="btnCancelarPassword"
-        class="flex-1 border border-red-300 text-red-500 py-2 rounded-lg hover:bg-red-50 transition">
-        Cancelar
-      </button>
+      <!-- INPUT FILE -->
+      <input type="file" id="inputFotoPerfil" class="hidden" accept="image/*">
 
+      <!-- BOTONES -->
+      <div class="flex flex-col gap-3">
+
+        <button id="btnEditarPerfil"
+          class="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition shadow hover:scale-105">
+          Editar perfil
+        </button>
+
+        <button id="btnGuardarPerfil"
+          class="hidden w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition shadow hover:scale-105">
+          Guardar cambios
+        </button>
+
+        <button id="btnCancelarPerfil"
+          class="hidden w-full bg-gray-400 text-white py-2 rounded-lg hover:bg-gray-500 transition shadow hover:scale-105">
+          Cancelar
+        </button>
+
+        <button id="btnCerrarSesionPerfil"
+          class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition shadow hover:scale-105">
+          Cerrar sesión
+        </button>
+
+      </div>
     </div>
+  </main>
 
-  </div>
-</div>
-
-<script type="module" src="js/perfil.js"></script>
+  <script type="module" src="js/perfil.js"></script>
 
 </body>
 </html>
