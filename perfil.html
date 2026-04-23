@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Perfil - Daily Love</title>
 
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- PWA -->
   <meta name="theme-color" content="#EC4899">
   <link rel="icon" href="Daily L.png" type="image/png">
 </head>
@@ -33,26 +35,31 @@
     <!-- FOTO -->
     <div class="flex flex-col items-center mb-4">
       <img id="fotoPerfil"
-        class="w-28 h-28 rounded-full object-cover border-4 border-pink-400 shadow">
+        class="w-28 h-28 rounded-full object-cover border-4 border-pink-400 shadow mb-2">
     </div>
 
     <!-- NOMBRE -->
     <h2 id="nombrePerfil" class="text-xl font-bold text-pink-600 mb-1"></h2>
 
     <!-- CORREO -->
-    <p id="correoPerfil" class="text-gray-500 text-sm mb-6"></p>
+    <p id="correoPerfil" class="text-gray-500 text-sm mb-4"></p>
 
-    <!-- CONTRASEÑA FAKE -->
+    <!-- 🔐 CONTRASEÑA (FAKE) -->
     <div class="flex items-center justify-center gap-2 mb-6">
-      <span class="text-gray-700 font-mono tracking-widest">••••••••</span>
 
+      <span class="text-gray-700 font-mono tracking-widest">
+        ••••••••
+      </span>
+
+      <!-- BOTON EDITAR PASSWORD -->
       <button id="btnEditarPassword"
-        class="text-pink-500 hover:scale-110 transition text-xl">
+        class="text-pink-500 hover:scale-110 transition">
         ✏️
       </button>
+
     </div>
 
-    <!-- BOTÓN CERRAR -->
+    <!-- BOTÓN CERRAR SESIÓN -->
     <button id="btnCerrarSesionPerfil"
       class="w-full border border-red-300 text-red-500 py-2 rounded-lg hover:bg-red-50 transition">
       Cerrar sesión
@@ -62,40 +69,47 @@
 
 </main>
 
-<!-- MODAL PASSWORD -->
+<!-- 🔥 MODAL CAMBIAR CONTRASEÑA -->
 <div id="modalPassword"
   class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
 
-  <div class="bg-white rounded-2xl p-6 w-[90%] max-w-sm shadow-xl text-center">
+  <div class="bg-white rounded-2xl p-6 w-[90%] max-w-sm text-center shadow-xl">
 
     <h2 class="text-lg font-bold text-pink-600 mb-4">
-      Cambiar contraseña
+      Editar contraseña
     </h2>
 
+    <!-- ACTUAL -->
     <input id="inputPasswordActual"
       type="password"
       placeholder="Contraseña actual"
       class="w-full border rounded p-2 mb-3 text-center">
 
+    <!-- NUEVA -->
     <input id="inputPasswordNueva"
       type="password"
       placeholder="Nueva contraseña"
-      class="w-full border rounded p-2 mb-4 text-center">
+      class="w-full border rounded p-2 mb-2 text-center">
 
-    <p id="errorPassword" class="text-red-500 text-sm hidden mb-3">
+    <!-- ERROR -->
+    <p id="errorPassword"
+      class="text-red-500 text-sm mb-3 hidden">
       Contraseña incorrecta
     </p>
 
+    <!-- BOTONES -->
     <div class="flex gap-2">
+
       <button id="btnConfirmarPassword"
-        class="flex-1 border border-green-300 text-green-600 py-2 rounded-lg hover:bg-green-50">
+        class="flex-1 border border-green-300 text-green-600 py-2 rounded-lg hover:bg-green-50 transition">
         Guardar
       </button>
 
       <button id="btnCancelarPassword"
-        class="flex-1 border border-red-300 text-red-500 py-2 rounded-lg hover:bg-red-50">
+        class="flex-1 border border-red-300 text-red-500 py-2 rounded-lg hover:bg-red-50 transition">
         Cancelar
       </button>
+
     </div>
 
   </div>
