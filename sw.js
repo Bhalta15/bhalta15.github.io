@@ -5,15 +5,15 @@ importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 const CACHE_NAME = "daily-love-v2";
 
 const urlsToCache = [
-  "/DailyLove/",
-  "/DailyLove/app.html",
-  "/DailyLove/registro.html",
-  "/DailyLove/js/app.js",
-  "/DailyLove/js/firebase.js",
-  "/DailyLove/js/registro.js",
-  "/DailyLove/js/registroFirebase.js",
-  "/DailyLove/js/toast.js",
-  "/DailyLove/Daily L.png"
+  "/",
+  "/app.html",
+  "/registro.html",
+  "/js/app.js",
+  "/js/firebase.js",
+  "/js/registro.js",
+  "/js/registroFirebase.js",
+  "/js/toast.js",
+  "/Daily L.png"
 ];
 
 self.addEventListener("install", e => {
