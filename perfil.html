@@ -30,76 +30,90 @@
 <!-- CONTENIDO -->
 <main class="p-6 max-w-md mx-auto">
 
-  <div class="bg-white shadow-lg rounded-2xl p-6 text-center transition-all duration-300">
+  <div class="bg-white shadow-lg rounded-2xl p-6 text-center">
 
     <!-- FOTO -->
     <div class="flex flex-col items-center mb-4">
       <img id="fotoPerfil"
-        class="w-28 h-28 rounded-full object-cover border-4 border-pink-400 shadow mb-2 transition-all duration-300">
-
-      <button id="btnCambiarFoto"
-        class="hidden text-sm text-pink-500 hover:scale-105 transition">
-        Cambiar foto 📸
-      </button>
-
-      <button id="btnEliminarFoto"
-        class="hidden text-sm text-red-500 hover:scale-105 transition">
-        Quitar foto 🗑️
-      </button>
+        class="w-28 h-28 rounded-full object-cover border-4 border-pink-400 shadow mb-2">
     </div>
 
-    <!-- INFO -->
+    <!-- NOMBRE -->
     <h2 id="nombrePerfil" class="text-xl font-bold text-pink-600 mb-1"></h2>
 
-    <input id="inputNombrePerfil"
-      class="hidden w-full border rounded p-2 text-center mb-2 focus:outline-pink-400 transition"
-      placeholder="Nuevo nombre">
+    <!-- CORREO -->
+    <p id="correoPerfil" class="text-gray-500 text-sm mb-4"></p>
 
-    <!-- 🔐 CONTRASEÑA ACTUAL -->
+    <!-- 🔐 CONTRASEÑA (FAKE) -->
+    <div class="flex items-center justify-center gap-2 mb-6">
+
+      <span class="text-gray-700 font-mono tracking-widest">
+        ••••••••
+      </span>
+
+      <!-- BOTON EDITAR PASSWORD -->
+      <button id="btnEditarPassword"
+        class="text-pink-500 hover:scale-110 transition">
+        ✏️
+      </button>
+
+    </div>
+
+    <!-- BOTÓN CERRAR SESIÓN -->
+    <button id="btnCerrarSesionPerfil"
+      class="w-full border border-red-300 text-red-500 py-2 rounded-lg hover:bg-red-50 transition">
+      Cerrar sesión
+    </button>
+
+  </div>
+
+</main>
+
+<!-- 🔥 MODAL CAMBIAR CONTRASEÑA -->
+<div id="modalPassword"
+  class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+
+  <div class="bg-white rounded-2xl p-6 w-[90%] max-w-sm text-center shadow-xl">
+
+    <h2 class="text-lg font-bold text-pink-600 mb-4">
+      Editar contraseña
+    </h2>
+
+    <!-- ACTUAL -->
     <input id="inputPasswordActual"
       type="password"
-      class="hidden w-full border rounded p-2 text-center mb-2"
-      placeholder="Contraseña actual">
+      placeholder="Contraseña actual"
+      class="w-full border rounded p-2 mb-3 text-center">
 
-    <!-- 🔐 NUEVA CONTRASEÑA -->
-    <input id="inputPasswordPerfil"
+    <!-- NUEVA -->
+    <input id="inputPasswordNueva"
       type="password"
-      class="hidden w-full border rounded p-2 text-center mb-2"
-      placeholder="Nueva contraseña">
+      placeholder="Nueva contraseña"
+      class="w-full border rounded p-2 mb-2 text-center">
 
-    <p id="correoPerfil" class="text-gray-500 text-sm mb-6"></p>
-
-    <!-- INPUT FILE -->
-    <input type="file" id="inputFotoPerfil" class="hidden" accept="image/*">
+    <!-- ERROR -->
+    <p id="errorPassword"
+      class="text-red-500 text-sm mb-3 hidden">
+      Contraseña incorrecta
+    </p>
 
     <!-- BOTONES -->
-    <div class="flex flex-col gap-3">
+    <div class="flex gap-2">
 
-      <button id="btnEditarPerfil"
-        class="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition shadow hover:scale-105">
-        Editar perfil
+      <button id="btnConfirmarPassword"
+        class="flex-1 border border-green-300 text-green-600 py-2 rounded-lg hover:bg-green-50 transition">
+        Guardar
       </button>
 
-      <button id="btnGuardarPerfil"
-        class="hidden w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition shadow hover:scale-105">
-        Guardar cambios
-      </button>
-
-      <button id="btnCancelarPerfil"
-        class="hidden w-full bg-gray-400 text-white py-2 rounded-lg hover:bg-gray-500 transition shadow hover:scale-105">
+      <button id="btnCancelarPassword"
+        class="flex-1 border border-red-300 text-red-500 py-2 rounded-lg hover:bg-red-50 transition">
         Cancelar
-      </button>
-
-      <button id="btnCerrarSesionPerfil"
-        class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition shadow hover:scale-105">
-        Cerrar sesión
       </button>
 
     </div>
 
   </div>
-
-</main>
+</div>
 
 <script type="module" src="js/perfil.js"></script>
 
