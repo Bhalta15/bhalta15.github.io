@@ -106,14 +106,15 @@ async function notificarPareja(tipo) {
       frase:   "Te dejaron una frase 💭"
     };
 
-    await fetch("https://daily-love-server.onrender.com/notificar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        oneSignalId,
-        tipo
-      })
-    });
+   await fetch("https://daily-love-server.onrender.com/notificar", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    oneSignalId,
+    tipo,
+    nombreUsuario: document.getElementById("userName").textContent
+  })
+});
   } catch (e) {
     console.error("Error mandando notificación:", e);
   }
