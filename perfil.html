@@ -4,95 +4,197 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Perfil - Daily Love</title>
-
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- PWA -->
   <meta name="theme-color" content="#EC4899">
   <link rel="icon" href="Daily L.png" type="image/png">
+  <style>
+    .field-label { @apply text-xs text-gray-400 uppercase tracking-wider mb-1; }
+    .field-value { @apply text-gray-700 font-medium; }
+  </style>
 </head>
-
 <body class="bg-pink-50 min-h-screen font-sans">
 
   <!-- HEADER -->
   <header class="bg-white shadow-md py-4 px-6 flex items-center relative">
-    <button onclick="history.back()" class="px-2 py-1 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition">
-      ←
-    </button>
-
-    <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">
-      Perfil
-    </h1>
+    <button onclick="history.back()" class="px-2 py-1 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition">←</button>
+    <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">Perfil</h1>
   </header>
+
+  <!-- MODAL PREVIEW FOTO -->
+  <div id="modalFotoPreview"
+    class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
+      <h3 class="text-base font-bold text-pink-600 mb-4">Nueva foto de perfil</h3>
+      <img id="previewFotoPerfil" src="" class="w-32 h-32 rounded-full object-cover border-4 border-pink-300 mx-auto mb-4">
+      <div class="flex gap-3 justify-center">
+        <button id="btnCancelarFotoPreview"
+          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">
+          Cancelar
+        </button>
+        <button id="btnConfirmarFotoPreview"
+          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">
+          Cambiar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIRMAR GUARDAR -->
+  <div id="modalConfirmarGuardar"
+    class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
+      <p class="text-gray-700 text-base mb-6">¿Estás seguro de actualizar los datos de tu perfil?</p>
+      <div class="flex gap-3 justify-center">
+        <button id="btnCancelarGuardar"
+          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">
+          Cancelar
+        </button>
+        <button id="btnAceptarGuardar"
+          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">
+          Aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR CONTRASEÑA -->
+  <div id="modalPassword"
+    class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+      <h3 class="text-base font-bold text-pink-600 mb-4">Cambiar contraseña</h3>
+      <div class="mb-3">
+        <input id="inputPasswordActual" type="password"
+          class="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+          placeholder="Contraseña actual">
+        <p id="errorPasswordActual" class="text-red-400 text-xs mt-1 hidden">Contraseña incorrecta</p>
+      </div>
+      <div class="mb-5">
+        <input id="inputPasswordNueva" type="password"
+          class="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+          placeholder="Nueva contraseña">
+        <p id="errorPasswordNueva" class="text-red-400 text-xs mt-1 hidden">Mínimo 6 caracteres</p>
+      </div>
+      <div class="flex gap-3 justify-center">
+        <button id="btnCancelarPassword"
+          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">
+          Cancelar
+        </button>
+        <button id="btnGuardarPassword"
+          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- CONTENIDO -->
   <main class="p-6 max-w-md mx-auto">
-    <div class="bg-white shadow-lg rounded-2xl p-6 text-center transition-all duration-300">
+    <div class="bg-white shadow-lg rounded-2xl p-6 relative">
+
+      <!-- BOTÓN EDITAR (lápiz) -->
+      <button id="btnEditarPerfil"
+        class="absolute top-4 right-4 w-9 h-9 rounded-xl bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition flex items-center justify-center shadow-sm"
+        title="Editar perfil">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l-4 1 1-4 9.293-9.293a1 1 0 011.414 0l2.586 2.586a1 1 0 010 1.414L9 13z"/>
+        </svg>
+      </button>
 
       <!-- FOTO -->
-      <div class="flex flex-col items-center mb-4">
-        <img id="fotoPerfil" class="w-28 h-28 rounded-full object-cover border-4 border-pink-400 shadow mb-2 transition-all duration-300">
+      <div class="flex flex-col items-center mb-6">
+        <div class="relative group cursor-pointer" id="contenedorFoto">
+          <img id="fotoPerfil"
+            class="w-28 h-28 rounded-full object-cover border-4 border-pink-400 shadow transition-all duration-300">
+          <!-- Overlay lápiz -->
+          <div id="overlayFoto"
+            class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all duration-300 pointer-events-none">
+            <svg id="iconoLapizFoto" xmlns="http://www.w3.org/2000/svg"
+              class="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l-4 1 1-4 9.293-9.293a1 1 0 011.414 0l2.586 2.586a1 1 0 010 1.414L9 13z"/>
+            </svg>
+          </div>
+        </div>
 
-        <button id="btnCambiarFoto" class="hidden text-sm text-pink-500 hover:scale-105 transition">
-          Cambiar foto 📸
-        </button>
+        <!-- Input file oculto -->
+        <input type="file" id="inputFotoPerfil" class="hidden" accept="image/*">
 
-        <button id="btnEliminarFoto" class="hidden text-sm text-red-500 hover:scale-105 transition">
+        <!-- Quitar foto (solo en modo edición) -->
+        <button id="btnEliminarFoto"
+          class="hidden mt-2 text-xs text-red-400 hover:text-red-500 transition">
           Quitar foto 🗑️
         </button>
       </div>
 
-      <!-- INFO -->
-      <h2 id="nombrePerfil" class="text-xl font-bold text-pink-600 mb-1"></h2>
+      <!-- CAMPOS -->
+      <div class="space-y-4">
 
-      <input id="inputNombrePerfil"
-        class="hidden w-full border rounded p-2 text-center mb-2 focus:outline-pink-400 transition"
-        placeholder="Nuevo nombre">
+        <!-- Usuario -->
+        <div>
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Usuario</p>
+          <p id="nombrePerfil" class="text-gray-700 font-medium"></p>
+          <input id="inputNombrePerfil"
+            class="hidden w-full border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300 transition"
+            placeholder="Nombre de usuario">
+        </div>
 
-      <!-- 🔐 CONTRASEÑA ACTUAL -->
-      <input id="inputPasswordActual" type="password"
-        class="hidden w-full border rounded p-2 text-center mb-2"
-        placeholder="Contraseña actual">
+        <!-- Correo (solo lectura) -->
+        <div>
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Correo</p>
+          <p id="correoPerfil" class="text-gray-700 font-medium"></p>
+        </div>
 
-      <!-- 🔐 NUEVA CONTRASEÑA -->
-      <input id="inputPasswordPerfil" type="password"
-        class="hidden w-full border rounded p-2 text-center mb-2"
-        placeholder="Nueva contraseña">
+        <!-- Contraseña (solo lectura / botón en edición) -->
+        <div>
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Contraseña</p>
+          <p class="text-gray-700 font-medium">••••••••</p>
+          <button id="btnAbrirPassword"
+            class="hidden mt-1 text-xs text-pink-500 hover:text-pink-600 underline transition">
+            Editar contraseña
+          </button>
+        </div>
 
-      <p id="correoPerfil" class="text-gray-500 text-sm mb-6"></p>
+        <!-- Género (solo lectura) -->
+        <div>
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Género</p>
+          <p id="generoPerfil" class="text-gray-700 font-medium capitalize"></p>
+        </div>
 
-      <!-- INPUT FILE -->
-      <input type="file" id="inputFotoPerfil" class="hidden" accept="image/*">
+        <!-- Pareja (solo lectura) -->
+        <div>
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Pareja</p>
+          <p id="parejaPerfil" class="text-gray-700 font-medium"></p>
+        </div>
 
-      <!-- BOTONES -->
-      <div class="flex flex-col gap-3">
-
-        <button id="btnEditarPerfil"
-          class="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition shadow hover:scale-105">
-          Editar perfil
-        </button>
-
-        <button id="btnGuardarPerfil"
-          class="hidden w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition shadow hover:scale-105">
-          Guardar cambios
-        </button>
-
-        <button id="btnCancelarPerfil"
-          class="hidden w-full bg-gray-400 text-white py-2 rounded-lg hover:bg-gray-500 transition shadow hover:scale-105">
-          Cancelar
-        </button>
-
-        <button id="btnCerrarSesionPerfil"
-          class="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition shadow hover:scale-105">
-          Cerrar sesión
-        </button>
+        <!-- Código de pareja (solo lectura) -->
+        <div>
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Código de pareja</p>
+          <p id="codigoPerfil" class="text-gray-700 font-medium"></p>
+        </div>
 
       </div>
+
+      <!-- BOTONES EDICIÓN -->
+      <div id="botonesEdicion" class="hidden mt-6 flex gap-3 justify-center">
+        <button id="btnCancelarPerfil"
+          class="flex-1 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">
+          Cancelar
+        </button>
+        <button id="btnGuardarPerfil"
+          class="flex-1 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">
+          Guardar
+        </button>
+      </div>
+
+      <!-- CERRAR SESIÓN -->
+      <button id="btnCerrarSesionPerfil"
+        class="mt-6 w-full py-2 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition text-sm">
+        Cerrar sesión
+      </button>
+
     </div>
   </main>
 
   <script type="module" src="js/perfil.js"></script>
-
 </body>
 </html>
