@@ -234,7 +234,7 @@ btnGuardarPassword.onclick = async () => {
     const credential = EmailAuthProvider.credential(user.email, actual);
     await reauthenticateWithCredential(user, credential);
     await updatePassword(user, nueva);
-    mostrarToast("Contraseña editada ✅", "exito");
+    mostrarToast("Contraseña editada", "exito");
     modalPassword.classList.add("hidden");
     modalPassword.classList.remove("flex");
   } catch (error) {
@@ -292,7 +292,7 @@ btnAceptarGuardar.onclick = async () => {
 
     fotoPerfil.src = fotoOriginal;
     salirModoEdicion();
-    mostrarToast("Perfil actualizado ✅", "exito");
+    mostrarToast("Perfil actualizado", "exito");
 
   } catch (error) {
     console.error(error);
