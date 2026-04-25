@@ -7,38 +7,46 @@ import {
   reauthenticateWithCredential
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs
+  doc, getDoc, updateDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { mostrarToast } from "./toast.js";
 
 // ===== ELEMENTOS =====
-const fotoPerfil          = document.getElementById("fotoPerfil");
-const contenedorFoto      = document.getElementById("contenedorFoto");
-const inputFotoPerfil     = document.getElementById("inputFotoPerfil");
-const btnEliminarFoto     = document.getElementById("btnEliminarFoto");
-const nombrePerfil        = document.getElementById("nombrePerfil");
-const correoPerfil        = document.getElementById("correoPerfil");
-const generoPerfil        = document.getElementById("generoPerfil");
-const parejaPerfil        = document.getElementById("parejaPerfil");
-const codigoPerfil        = document.getElementById("codigoPerfil");
-const inputNombrePerfil   = document.getElementById("inputNombrePerfil");
-const btnEditarPerfil     = document.getElementById("btnEditarPerfil");
-const btnGuardarPerfil    = document.getElementById("btnGuardarPerfil");
-const btnCancelarPerfil   = document.getElementById("btnCancelarPerfil");
-const botonesEdicion      = document.getElementById("botonesEdicion");
-const btnCerrarSesionPerfil = document.getElementById("btnCerrarSesionPerfil");
-const btnAbrirPassword    = document.getElementById("btnAbrirPassword");
+const fotoPerfil             = document.getElementById("fotoPerfil");
+const contenedorFoto         = document.getElementById("contenedorFoto");
+const overlayFoto            = document.getElementById("overlayFoto");
+const inputFotoPerfil        = document.getElementById("inputFotoPerfil");
+const btnEliminarFoto        = document.getElementById("btnEliminarFoto");
+const nombrePerfil           = document.getElementById("nombrePerfil");
+const correoPerfil           = document.getElementById("correoPerfil");
+const generoPerfil           = document.getElementById("generoPerfil");
+const parejaPerfil           = document.getElementById("parejaPerfil");
+const codigoPerfil           = document.getElementById("codigoPerfil");
+const inputNombrePerfil      = document.getElementById("inputNombrePerfil");
+const btnEditarPerfil        = document.getElementById("btnEditarPerfil");
+const btnGuardarPerfil       = document.getElementById("btnGuardarPerfil");
+const btnCancelarPerfil      = document.getElementById("btnCancelarPerfil");
+const botonesEdicion         = document.getElementById("botonesEdicion");
+const btnCerrarSesionPerfil  = document.getElementById("btnCerrarSesionPerfil");
+const btnAbrirPassword       = document.getElementById("btnAbrirPassword");
 
-// Modales
+// Modal ver foto
+const modalVerFoto           = document.getElementById("modalVerFoto");
+const fotoGrandePerfil       = document.getElementById("fotoGrandePerfil");
+const btnCerrarVerFoto       = document.getElementById("btnCerrarVerFoto");
+
+// Modal preview foto nueva
 const modalFotoPreview       = document.getElementById("modalFotoPreview");
 const previewFotoPerfil      = document.getElementById("previewFotoPerfil");
 const btnCancelarFotoPreview = document.getElementById("btnCancelarFotoPreview");
 const btnConfirmarFotoPreview= document.getElementById("btnConfirmarFotoPreview");
 
+// Modal confirmar guardar
 const modalConfirmarGuardar  = document.getElementById("modalConfirmarGuardar");
 const btnCancelarGuardar     = document.getElementById("btnCancelarGuardar");
 const btnAceptarGuardar      = document.getElementById("btnAceptarGuardar");
 
+// Modal contraseña
 const modalPassword          = document.getElementById("modalPassword");
 const inputPasswordActual    = document.getElementById("inputPasswordActual");
 const inputPasswordNueva     = document.getElementById("inputPasswordNueva");
@@ -52,9 +60,8 @@ let nuevaFotoBase64  = null;
 let eliminarFoto     = false;
 let fotoOriginal     = null;
 let modoEdicion      = false;
-let archivoFotoPrev  = null; // archivo temporal antes de confirmar
+let archivoFotoPrev  = null;
 let uid              = null;
-let codigoPareja     = null;
 
 // ===== CARGAR USUARIO =====
 onAuthStateChanged(auth, async (user) => {
@@ -68,7 +75,6 @@ onAuthStateChanged(auth, async (user) => {
 
   if (snap.exists()) {
     const datos = snap.data();
-    codigoPareja = datos.codigo;
 
     nombrePerfil.textContent = datos.usuario;
     correoPerfil.textContent = user.email;
@@ -78,94 +84,49 @@ onAuthStateChanged(auth, async (user) => {
     fotoOriginal = datos.foto || generarAvatar(datos.usuario);
     fotoPerfil.src = fotoOriginal;
 
-    // Buscar nombre de la pareja
     await cargarNombrePareja(datos.codigo, user.uid);
   }
 });
 
 async function cargarNombrePareja(codigo, miUid) {
-  if (!codigo) {
-    parejaPerfil.textContent = "Sin pareja registrada";
-    return;
-  }
-
+  if (!codigo) { parejaPerfil.textContent = "Sin pareja registrada"; return; }
   try {
     const parejaSnap = await getDoc(doc(db, "parejas", codigo));
-    if (!parejaSnap.exists()) {
-      parejaPerfil.textContent = "Sin pareja registrada";
-      return;
-    }
-
+    if (!parejaSnap.exists()) { parejaPerfil.textContent = "Sin pareja registrada"; return; }
     const miembros = parejaSnap.data()?.usuarios || [];
     const uidPareja = miembros.find(u => u !== miUid);
-
-    if (!uidPareja) {
-      parejaPerfil.textContent = "Sin pareja registrada";
-      return;
-    }
-
+    if (!uidPareja) { parejaPerfil.textContent = "Sin pareja registrada"; return; }
     const parejaSnap2 = await getDoc(doc(db, "usuarios", uidPareja));
-    if (parejaSnap2.exists()) {
-      parejaPerfil.textContent = parejaSnap2.data().usuario || "—";
-    }
-  } catch (e) {
-    parejaPerfil.textContent = "—";
-  }
+    if (parejaSnap2.exists()) parejaPerfil.textContent = parejaSnap2.data().usuario || "—";
+  } catch { parejaPerfil.textContent = "—"; }
 }
 
-// ===== MODO EDICIÓN =====
-btnEditarPerfil.onclick = () => {
-  modoEdicion = true;
-  inputNombrePerfil.value = nombrePerfil.textContent;
-
-  nombrePerfil.classList.add("hidden");
-  inputNombrePerfil.classList.remove("hidden");
-  btnAbrirPassword.classList.remove("hidden");
-  btnEliminarFoto.classList.remove("hidden");
-  botonesEdicion.classList.remove("hidden");
-  btnCerrarSesionPerfil.classList.add("hidden");
-  btnEditarPerfil.classList.add("hidden");
-
-  // Activar click en foto
-  contenedorFoto.style.pointerEvents = "auto";
-  contenedorFoto.style.cursor = "pointer";
-};
-
-function salirModoEdicion() {
-  modoEdicion = false;
-  nuevaFotoBase64 = null;
-  eliminarFoto    = false;
-  archivoFotoPrev = null;
-
-  nombrePerfil.classList.remove("hidden");
-  inputNombrePerfil.classList.add("hidden");
-  btnAbrirPassword.classList.add("hidden");
-  btnEliminarFoto.classList.add("hidden");
-  botonesEdicion.classList.add("hidden");
-  btnCerrarSesionPerfil.classList.remove("hidden");
-  btnEditarPerfil.classList.remove("hidden");
-
-  fotoPerfil.src = fotoOriginal;
-  inputFotoPerfil.value = "";
-}
-
-btnCancelarPerfil.onclick = salirModoEdicion;
-
-// ===== FOTO — click en la imagen =====
+// ===== FOTO — click =====
 contenedorFoto.addEventListener("click", () => {
-  if (!modoEdicion) return;
-  inputFotoPerfil.click();
+  if (modoEdicion) {
+    // En edición: abrir galería
+    inputFotoPerfil.click();
+  } else {
+    // Fuera de edición: ver foto grande
+    fotoGrandePerfil.src = fotoPerfil.src;
+    modalVerFoto.classList.remove("hidden");
+    modalVerFoto.classList.add("flex");
+  }
 });
 
+// ===== CERRAR VER FOTO =====
+btnCerrarVerFoto.onclick = () => {
+  modalVerFoto.classList.add("hidden");
+  modalVerFoto.classList.remove("flex");
+};
+
+// ===== PREVIEW FOTO NUEVA =====
 inputFotoPerfil.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-
   archivoFotoPrev = file;
   const base64 = await comprimirImagen(file);
   previewFotoPerfil.src = base64;
-
-  // Mostrar modal preview
   modalFotoPreview.classList.remove("hidden");
   modalFotoPreview.classList.add("flex");
 });
@@ -193,6 +154,51 @@ btnEliminarFoto.onclick = () => {
   const nombre = inputNombrePerfil.value || nombrePerfil.textContent;
   fotoPerfil.src = generarAvatar(nombre);
 };
+
+// ===== MODO EDICIÓN =====
+btnEditarPerfil.onclick = () => {
+  modoEdicion = true;
+  inputNombrePerfil.value = nombrePerfil.textContent;
+
+  nombrePerfil.classList.add("hidden");
+  inputNombrePerfil.classList.remove("hidden");
+  btnAbrirPassword.classList.remove("hidden");
+  btnEliminarFoto.classList.remove("hidden");
+  botonesEdicion.classList.remove("hidden");
+  btnCerrarSesionPerfil.classList.add("hidden");
+  btnEditarPerfil.classList.add("hidden");
+
+  // Mostrar overlay lápiz en la foto siempre visible
+  overlayFoto.classList.remove("opacity-0");
+  overlayFoto.classList.add("opacity-100");
+  overlayFoto.style.backgroundColor = "rgba(0,0,0,0.35)";
+  overlayFoto.style.pointerEvents = "none"; // el click lo maneja contenedorFoto
+};
+
+function salirModoEdicion() {
+  modoEdicion      = false;
+  nuevaFotoBase64  = null;
+  eliminarFoto     = false;
+  archivoFotoPrev  = null;
+
+  nombrePerfil.classList.remove("hidden");
+  inputNombrePerfil.classList.add("hidden");
+  btnAbrirPassword.classList.add("hidden");
+  btnEliminarFoto.classList.add("hidden");
+  botonesEdicion.classList.add("hidden");
+  btnCerrarSesionPerfil.classList.remove("hidden");
+  btnEditarPerfil.classList.remove("hidden");
+
+  // Ocultar overlay lápiz
+  overlayFoto.classList.remove("opacity-100");
+  overlayFoto.classList.add("opacity-0");
+  overlayFoto.style.backgroundColor = "";
+
+  fotoPerfil.src = fotoOriginal;
+  inputFotoPerfil.value = "";
+}
+
+btnCancelarPerfil.onclick = salirModoEdicion;
 
 // ===== MODAL CONTRASEÑA =====
 btnAbrirPassword.onclick = () => {
@@ -234,7 +240,7 @@ btnGuardarPassword.onclick = async () => {
     const credential = EmailAuthProvider.credential(user.email, actual);
     await reauthenticateWithCredential(user, credential);
     await updatePassword(user, nueva);
-    mostrarToast("Contraseña editada", "exito");
+    mostrarToast("Contraseña editada ✅", "exito");
     modalPassword.classList.add("hidden");
     modalPassword.classList.remove("flex");
   } catch (error) {
@@ -250,11 +256,7 @@ btnGuardarPassword.onclick = async () => {
 // ===== GUARDAR PERFIL =====
 btnGuardarPerfil.onclick = () => {
   const nuevoNombre = inputNombrePerfil.value.trim();
-  if (!nuevoNombre) {
-    mostrarToast("El nombre no puede estar vacío", "error");
-    return;
-  }
-  // Mostrar modal confirmación
+  if (!nuevoNombre) { mostrarToast("El nombre no puede estar vacío", "error"); return; }
   modalConfirmarGuardar.classList.remove("hidden");
   modalConfirmarGuardar.classList.add("flex");
 };
@@ -272,28 +274,19 @@ btnAceptarGuardar.onclick = async () => {
 
   try {
     const updateData = { usuario: nuevoNombre };
-
-    if (nuevaFotoBase64) {
-      updateData.foto = nuevaFotoBase64;
-    } else if (eliminarFoto) {
-      updateData.foto = null;
-    }
+    if (nuevaFotoBase64)  updateData.foto = nuevaFotoBase64;
+    if (eliminarFoto)     updateData.foto = null;
 
     await updateDoc(doc(db, "usuarios", uid), updateData);
 
     // Actualizar UI en tiempo real
     nombrePerfil.textContent = nuevoNombre;
-
-    if (nuevaFotoBase64) {
-      fotoOriginal = nuevaFotoBase64;
-    } else if (eliminarFoto) {
-      fotoOriginal = generarAvatar(nuevoNombre);
-    }
-
+    if (nuevaFotoBase64)       fotoOriginal = nuevaFotoBase64;
+    else if (eliminarFoto)     fotoOriginal = generarAvatar(nuevoNombre);
     fotoPerfil.src = fotoOriginal;
-    salirModoEdicion();
-    mostrarToast("Perfil actualizado", "exito");
 
+    salirModoEdicion();
+    mostrarToast("Perfil actualizado ✅", "exito");
   } catch (error) {
     console.error(error);
     mostrarToast("Error al actualizar perfil", "error");
