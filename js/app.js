@@ -151,6 +151,7 @@ async function mostrarToastInApp(tipo, nombreUsuarioPareja) {
 // ===== SESIÓN PERSISTENTE =====
 setPersistence(auth, browserLocalPersistence).then(() => {
   onAuthStateChanged(auth, async (user) => {
+
     if (!user) {
       window.location.href = "registro.html";
       return;
@@ -159,45 +160,46 @@ setPersistence(auth, browserLocalPersistence).then(() => {
     try {
       const snap = await getDoc(doc(db, "usuarios", user.uid));
 
-      miUid = user.uid; // 🔥 SIEMPRE asignar
+      // 🔥 SI NO EXISTE EL USUARIO EN FIRESTORE → FORZAR LOGIN
+      if (!snap.exists()) {
+        await signOut(auth);
+        window.location.href = "registro.html";
+        return;
+      }
 
-if (snap.exists()) {
-  const datos  = snap.data();
-  miGenero     = datos.genero;
-  codigoPareja = datos.codigo;
+      const datos = snap.data();
 
-        const userNameEl     = document.getElementById("userName");
-        const userNameMainEl = document.getElementById("userNameMain");
+      // 🔥 SI NO TIENE CODIGO DE PAREJA → TAMBIÉN LO SACAS
+      if (!datos.codigo) {
+        await signOut(auth);
+        window.location.href = "registro.html";
+        return;
+      }
 
-        if (userNameEl)     userNameEl.textContent     = datos.usuario;
-        if (userNameMainEl) userNameMainEl.textContent = datos.usuario;
+      // ✅ TODO BIEN → SIGUE NORMAL
+      miUid = user.uid;
+      miGenero = datos.genero;
+      codigoPareja = datos.codigo;
 
-        if (fotoPerfilHeader) {
-          fotoPerfilHeader.src = datos.foto
-            ? datos.foto
-            : `https://ui-avatars.com/api/?name=${datos.usuario}&background=EC4899&color=fff`;
-        }
+      const userNameEl = document.getElementById("userName");
+      const userNameMainEl = document.getElementById("userNameMain");
 
-        if (btnPerfil && !btnPerfil.dataset.listener) {
-          btnPerfil.onclick = () => { window.location.href = "perfil.html"; };
-          btnPerfil.dataset.listener = "true";
-        }
+      if (userNameEl) userNameEl.textContent = datos.usuario;
+      if (userNameMainEl) userNameMainEl.textContent = datos.usuario;
 
-        if (!sessionStorage.getItem("bienvenidaMostrada")) {
-          mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
-          sessionStorage.setItem("bienvenidaMostrada", "1");
-        }
+      if (fotoPerfilHeader) {
+        fotoPerfilHeader.src = datos.foto
+          ? datos.foto
+          : `https://ui-avatars.com/api/?name=${datos.usuario}&background=EC4899&color=fff`;
+      }
+
+      if (btnPerfil && !btnPerfil.dataset.listener) {
+        btnPerfil.onclick = () => { window.location.href = "perfil.html"; };
+        btnPerfil.dataset.listener = "true";
       }
 
       await cargarApodoPareja();
       iniciarTiempoReal();
-
-      if (typeof OneSignal !== "undefined") {
-        await iniciarOneSignal();
-      } else {
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(async () => { await iniciarOneSignal(); });
-      }
 
     } catch (error) {
       console.error("Error cargando usuario:", error);
