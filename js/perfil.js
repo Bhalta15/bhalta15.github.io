@@ -21,6 +21,7 @@ const nombrePerfil           = document.getElementById("nombrePerfil");
 const correoPerfil           = document.getElementById("correoPerfil");
 const generoPerfil           = document.getElementById("generoPerfil");
 const parejaPerfil           = document.getElementById("parejaPerfil");
+const apodoPareja            = document.getElementById("apodoPareja");
 const codigoPerfil           = document.getElementById("codigoPerfil");
 const inputNombrePerfil      = document.getElementById("inputNombrePerfil");
 const btnEditarPerfil        = document.getElementById("btnEditarPerfil");
@@ -29,11 +30,21 @@ const btnCancelarPerfil      = document.getElementById("btnCancelarPerfil");
 const botonesEdicion         = document.getElementById("botonesEdicion");
 const btnCerrarSesionPerfil  = document.getElementById("btnCerrarSesionPerfil");
 const btnAbrirPassword       = document.getElementById("btnAbrirPassword");
+const btnVerPareja           = document.getElementById("btnVerPareja");
+const btnAbrirApodo          = document.getElementById("btnAbrirApodo");
 
-// Modal ver foto
+// Modal ver foto propia
 const modalVerFoto           = document.getElementById("modalVerFoto");
 const fotoGrandePerfil       = document.getElementById("fotoGrandePerfil");
 const btnCerrarVerFoto       = document.getElementById("btnCerrarVerFoto");
+
+// Modal perfil pareja
+const modalPerfilPareja      = document.getElementById("modalPerfilPareja");
+const fotoParejaPerfil       = document.getElementById("fotoParejaPerfil");
+const nombreParejaModal      = document.getElementById("nombreParejaModal");
+const generoParejaModal      = document.getElementById("generoParejaModal");
+const codigoParejaModal      = document.getElementById("codigoParejaModal");
+const btnCerrarPerfilPareja  = document.getElementById("btnCerrarPerfilPareja");
 
 // Modal preview foto nueva
 const modalFotoPreview       = document.getElementById("modalFotoPreview");
@@ -55,6 +66,12 @@ const errorPasswordNueva     = document.getElementById("errorPasswordNueva");
 const btnCancelarPassword    = document.getElementById("btnCancelarPassword");
 const btnGuardarPassword     = document.getElementById("btnGuardarPassword");
 
+// Modal apodo
+const modalApodo             = document.getElementById("modalApodo");
+const inputApodo             = document.getElementById("inputApodo");
+const btnCancelarApodo       = document.getElementById("btnCancelarApodo");
+const btnGuardarApodo        = document.getElementById("btnGuardarApodo");
+
 // ===== ESTADO =====
 let nuevaFotoBase64  = null;
 let eliminarFoto     = false;
@@ -62,19 +79,19 @@ let fotoOriginal     = null;
 let modoEdicion      = false;
 let archivoFotoPrev  = null;
 let uid              = null;
+let codigoPareja     = null;
+let datosPareja      = null; // datos del otro usuario
 
 // ===== CARGAR USUARIO =====
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "registro.html";
-    return;
-  }
+  if (!user) { window.location.href = "registro.html"; return; }
 
   uid = user.uid;
   const snap = await getDoc(doc(db, "usuarios", user.uid));
 
   if (snap.exists()) {
     const datos = snap.data();
+    codigoPareja = datos.codigo;
 
     nombrePerfil.textContent = datos.usuario;
     correoPerfil.textContent = user.email;
@@ -84,37 +101,61 @@ onAuthStateChanged(auth, async (user) => {
     fotoOriginal = datos.foto || generarAvatar(datos.usuario);
     fotoPerfil.src = fotoOriginal;
 
-    await cargarNombrePareja(datos.codigo, user.uid);
+    // Apodo guardado
+    if (datos.apodoPareja) {
+      apodoPareja.textContent = `💕 ${datos.apodoPareja}`;
+      apodoPareja.classList.remove("hidden");
+    }
+
+    await cargarDatosPareja(datos.codigo, user.uid);
   }
 });
 
-async function cargarNombrePareja(codigo, miUid) {
-  if (!codigo) { parejaPerfil.textContent = "Sin pareja registrada"; return; }
+async function cargarDatosPareja(codigo, miUid) {
+  if (!codigo) { parejaPerfil.textContent = "Sin pareja registrada"; btnVerPareja.classList.add("hidden"); return; }
   try {
-    const parejaSnap = await getDoc(doc(db, "parejas", codigo));
-    if (!parejaSnap.exists()) { parejaPerfil.textContent = "Sin pareja registrada"; return; }
-    const miembros = parejaSnap.data()?.usuarios || [];
+    const parejaDoc = await getDoc(doc(db, "parejas", codigo));
+    if (!parejaDoc.exists()) { parejaPerfil.textContent = "Sin pareja registrada"; btnVerPareja.classList.add("hidden"); return; }
+
+    const miembros = parejaDoc.data()?.usuarios || [];
     const uidPareja = miembros.find(u => u !== miUid);
-    if (!uidPareja) { parejaPerfil.textContent = "Sin pareja registrada"; return; }
-    const parejaSnap2 = await getDoc(doc(db, "usuarios", uidPareja));
-    if (parejaSnap2.exists()) parejaPerfil.textContent = parejaSnap2.data().usuario || "—";
+    if (!uidPareja) { parejaPerfil.textContent = "Sin pareja registrada"; btnVerPareja.classList.add("hidden"); return; }
+
+    const parejaSnap = await getDoc(doc(db, "usuarios", uidPareja));
+    if (parejaSnap.exists()) {
+      datosPareja = { uid: uidPareja, ...parejaSnap.data() };
+      parejaPerfil.textContent = datosPareja.usuario || "—";
+    }
   } catch { parejaPerfil.textContent = "—"; }
 }
+
+// ===== VER PERFIL PAREJA =====
+btnVerPareja.onclick = () => {
+  if (!datosPareja) return;
+  fotoParejaPerfil.src = datosPareja.foto || generarAvatar(datosPareja.usuario);
+  nombreParejaModal.textContent  = datosPareja.usuario || "—";
+  generoParejaModal.textContent  = datosPareja.genero  || "—";
+  codigoParejaModal.textContent  = codigoPareja         || "—";
+  modalPerfilPareja.classList.remove("hidden");
+  modalPerfilPareja.classList.add("flex");
+};
+
+btnCerrarPerfilPareja.onclick = () => {
+  modalPerfilPareja.classList.add("hidden");
+  modalPerfilPareja.classList.remove("flex");
+};
 
 // ===== FOTO — click =====
 contenedorFoto.addEventListener("click", () => {
   if (modoEdicion) {
-    // En edición: abrir galería
     inputFotoPerfil.click();
   } else {
-    // Fuera de edición: ver foto grande
     fotoGrandePerfil.src = fotoPerfil.src;
     modalVerFoto.classList.remove("hidden");
     modalVerFoto.classList.add("flex");
   }
 });
 
-// ===== CERRAR VER FOTO =====
 btnCerrarVerFoto.onclick = () => {
   modalVerFoto.classList.add("hidden");
   modalVerFoto.classList.remove("flex");
@@ -164,15 +205,16 @@ btnEditarPerfil.onclick = () => {
   inputNombrePerfil.classList.remove("hidden");
   btnAbrirPassword.classList.remove("hidden");
   btnEliminarFoto.classList.remove("hidden");
+  btnAbrirApodo.classList.remove("hidden");
   botonesEdicion.classList.remove("hidden");
   btnCerrarSesionPerfil.classList.add("hidden");
   btnEditarPerfil.classList.add("hidden");
 
-  // Mostrar overlay lápiz en la foto siempre visible
+  // Mostrar overlay lápiz siempre en edición
   overlayFoto.classList.remove("opacity-0");
   overlayFoto.classList.add("opacity-100");
   overlayFoto.style.backgroundColor = "rgba(0,0,0,0.35)";
-  overlayFoto.style.pointerEvents = "none"; // el click lo maneja contenedorFoto
+  overlayFoto.style.pointerEvents = "none";
 };
 
 function salirModoEdicion() {
@@ -185,11 +227,11 @@ function salirModoEdicion() {
   inputNombrePerfil.classList.add("hidden");
   btnAbrirPassword.classList.add("hidden");
   btnEliminarFoto.classList.add("hidden");
+  btnAbrirApodo.classList.add("hidden");
   botonesEdicion.classList.add("hidden");
   btnCerrarSesionPerfil.classList.remove("hidden");
   btnEditarPerfil.classList.remove("hidden");
 
-  // Ocultar overlay lápiz
   overlayFoto.classList.remove("opacity-100");
   overlayFoto.classList.add("opacity-0");
   overlayFoto.style.backgroundColor = "";
@@ -199,6 +241,37 @@ function salirModoEdicion() {
 }
 
 btnCancelarPerfil.onclick = salirModoEdicion;
+
+// ===== APODO =====
+btnAbrirApodo.onclick = () => {
+  inputApodo.value = apodoPareja.textContent.replace("💕 ", "") || "";
+  modalApodo.classList.remove("hidden");
+  modalApodo.classList.add("flex");
+};
+
+btnCancelarApodo.onclick = () => {
+  modalApodo.classList.add("hidden");
+  modalApodo.classList.remove("flex");
+};
+
+btnGuardarApodo.onclick = async () => {
+  const apodo = inputApodo.value.trim();
+  try {
+    await updateDoc(doc(db, "usuarios", uid), { apodoPareja: apodo });
+    if (apodo) {
+      apodoPareja.textContent = `💕 ${apodo}`;
+      apodoPareja.classList.remove("hidden");
+    } else {
+      apodoPareja.textContent = "";
+      apodoPareja.classList.add("hidden");
+    }
+    mostrarToast("Apodo guardado ✅", "exito");
+    modalApodo.classList.add("hidden");
+    modalApodo.classList.remove("flex");
+  } catch {
+    mostrarToast("Error al guardar apodo", "error");
+  }
+};
 
 // ===== MODAL CONTRASEÑA =====
 btnAbrirPassword.onclick = () => {
@@ -271,7 +344,6 @@ btnAceptarGuardar.onclick = async () => {
   modalConfirmarGuardar.classList.remove("flex");
 
   const nuevoNombre = inputNombrePerfil.value.trim();
-
   try {
     const updateData = { usuario: nuevoNombre };
     if (nuevaFotoBase64)  updateData.foto = nuevaFotoBase64;
@@ -279,10 +351,9 @@ btnAceptarGuardar.onclick = async () => {
 
     await updateDoc(doc(db, "usuarios", uid), updateData);
 
-    // Actualizar UI en tiempo real
     nombrePerfil.textContent = nuevoNombre;
-    if (nuevaFotoBase64)       fotoOriginal = nuevaFotoBase64;
-    else if (eliminarFoto)     fotoOriginal = generarAvatar(nuevoNombre);
+    if (nuevaFotoBase64)   fotoOriginal = nuevaFotoBase64;
+    else if (eliminarFoto) fotoOriginal = generarAvatar(nuevoNombre);
     fotoPerfil.src = fotoOriginal;
 
     salirModoEdicion();
