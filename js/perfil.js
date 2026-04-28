@@ -444,7 +444,7 @@ btnAceptarGuardar.onclick = async () => {
         await updatePassword(user, passwordPendiente.nueva);
       } catch (error) {
         if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
-          mostrarToast("Contraseña actual incorrecta — no se guardaron los cambios", "error");
+          mostrarToast("Contraseña actual incorrecta", "error");
         } else {
           mostrarToast("Error al cambiar contraseña", "error");
         }
@@ -469,7 +469,7 @@ btnAceptarGuardar.onclick = async () => {
     fotoPerfil.src = fotoOriginal;
 
     salirModoEdicion();
-    mostrarToast("Perfil actualizado ✅", "exito");
+    mostrarToast("Perfil actualizado", "exito");
   } catch (error) {
     console.error(error);
     mostrarToast("Error al actualizar perfil", "error");

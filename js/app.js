@@ -126,10 +126,10 @@ async function notificarPareja(tipo) {
 
 // ===== TOAST IN-APP PARA CONTENIDO NUEVO DE LA PAREJA =====
 const mensajesInApp = {
-  mensaje: "💬 Nuevo mensaje",
-  foto:    "📸 Nueva foto",
-  cancion: "🎵 Nueva canción",
-  frase:   "💭 Nueva frase"
+  mensaje: "Nuevo mensaje💬",
+  foto:    "Nueva foto📸",
+  cancion: "Nueva canción🎵",
+  frase:   "Nueva frase💭"
 };
 
 // Apodo guardado de la pareja (se carga al iniciar sesión)
