@@ -12,7 +12,6 @@
 
   <!-- HEADER -->
   <header class="bg-white shadow-md py-4 px-6 flex items-center relative">
-    <!-- Flecha estilizada -->
     <button onclick="history.back()"
       class="flex items-center gap-1 px-3 py-1.5 bg-pink-100 text-pink-600 rounded-xl hover:bg-pink-200 transition font-semibold text-sm shadow-sm">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -20,16 +19,31 @@
       </svg>
       Volver
     </button>
-    <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">Mi perfil</h1>
+    <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">Perfil</h1>
   </header>
 
-  <!-- MODAL VER FOTO -->
+  <!-- MODAL VER FOTO PROPIA -->
   <div id="modalVerFoto"
     class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4">
     <div class="relative max-w-sm w-full">
-      <button id="btnCerrarVerFoto"
-        class="absolute top-2 right-2 text-white text-xl hover:text-gray-300 transition">✕</button>
+      <button id="btnCerrarVerFoto" class="absolute top-2 right-2 text-white text-xl hover:text-gray-300 transition">✕</button>
       <img id="fotoGrandePerfil" src="" class="w-full rounded-2xl object-cover shadow-xl">
+    </div>
+  </div>
+
+  <!-- MODAL PERFIL PAREJA -->
+  <div id="modalPerfilPareja"
+    class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl text-center relative">
+      <button id="btnCerrarPerfilPareja"
+        class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl transition">✕</button>
+      <img id="fotoParejaPerfil"
+        class="w-24 h-24 rounded-full object-cover border-4 border-pink-300 mx-auto mb-3 shadow">
+      <h3 id="nombreParejaModal" class="text-lg font-bold text-pink-600 mb-1"></h3>
+      <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Género</p>
+      <p id="generoParejaModal" class="text-gray-700 font-medium mb-3 capitalize"></p>
+      <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Código de pareja</p>
+      <p id="codigoParejaModal" class="text-gray-700 font-medium"></p>
     </div>
   </div>
 
@@ -41,13 +55,9 @@
       <img id="previewFotoPerfil" src="" class="w-32 h-32 rounded-full object-cover border-4 border-pink-300 mx-auto mb-4">
       <div class="flex gap-3 justify-center">
         <button id="btnCancelarFotoPreview"
-          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">
-          Cancelar
-        </button>
+          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
         <button id="btnConfirmarFotoPreview"
-          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">
-          Cambiar
-        </button>
+          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Cambiar</button>
       </div>
     </div>
   </div>
@@ -59,13 +69,9 @@
       <p class="text-gray-700 text-base mb-6">¿Estás seguro de actualizar los datos de tu perfil?</p>
       <div class="flex gap-3 justify-center">
         <button id="btnCancelarGuardar"
-          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">
-          Cancelar
-        </button>
+          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
         <button id="btnAceptarGuardar"
-          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">
-          Aceptar
-        </button>
+          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Aceptar</button>
       </div>
     </div>
   </div>
@@ -89,13 +95,26 @@
       </div>
       <div class="flex gap-3 justify-center">
         <button id="btnCancelarPassword"
-          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">
-          Cancelar
-        </button>
+          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
         <button id="btnGuardarPassword"
-          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">
-          Guardar
-        </button>
+          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL APODO -->
+  <div id="modalApodo"
+    class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+      <h3 class="text-base font-bold text-pink-600 mb-4">Apodo de tu pareja</h3>
+      <input id="inputApodo"
+        class="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300 mb-5"
+        placeholder="Ej: mi amor, cariño...">
+      <div class="flex gap-3 justify-center">
+        <button id="btnCancelarApodo"
+          class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
+        <button id="btnGuardarApodo"
+          class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Guardar</button>
       </div>
     </div>
   </div>
@@ -104,10 +123,9 @@
   <main class="flex-1 p-4 max-w-md mx-auto w-full">
     <div class="bg-white shadow-lg rounded-2xl p-5 relative">
 
-      <!-- BOTÓN EDITAR (lápiz amarillo) -->
+      <!-- BOTÓN EDITAR lápiz -->
       <button id="btnEditarPerfil"
-        class="absolute top-4 right-4 w-10 h-10 rounded-xl bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition flex items-center justify-center shadow-sm"
-        title="Editar perfil">
+        class="absolute top-4 right-4 w-10 h-10 rounded-xl bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition flex items-center justify-center shadow-sm">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l-4 1 1-4 9.293-9.293a1 1 0 011.414 0l2.586 2.586a1 1 0 010 1.414L9 13z"/>
         </svg>
@@ -116,26 +134,17 @@
       <!-- FOTO -->
       <div class="flex flex-col items-center mb-5">
         <div class="relative cursor-pointer" id="contenedorFoto">
-          <img id="fotoPerfil"
-            class="w-24 h-24 rounded-full object-cover border-4 border-pink-400 shadow transition-all duration-300">
-
-          <!-- Overlay lápiz — solo visible en modo edición -->
+          <img id="fotoPerfil" class="w-24 h-24 rounded-full object-cover border-4 border-pink-400 shadow transition-all duration-300">
           <div id="overlayFoto"
-            class="absolute inset-0 rounded-full bg-black bg-opacity-0 flex items-center justify-center transition-all duration-300 pointer-events-none opacity-0">
-            <svg xmlns="http://www.w3.org/2000/svg"
-              class="w-7 h-7 text-white"
+            class="absolute inset-0 rounded-full flex items-center justify-center transition-all duration-300 pointer-events-none opacity-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-white"
               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l-4 1 1-4 9.293-9.293a1 1 0 011.414 0l2.586 2.586a1 1 0 010 1.414L9 13z"/>
             </svg>
           </div>
         </div>
-
         <input type="file" id="inputFotoPerfil" class="hidden" accept="image/*">
-
-        <button id="btnEliminarFoto"
-          class="hidden mt-2 text-xs text-red-400 hover:text-red-500 transition">
-          Quitar foto 🗑️
-        </button>
+        <button id="btnEliminarFoto" class="hidden mt-2 text-xs text-red-400 hover:text-red-500 transition">Quitar foto 🗑️</button>
       </div>
 
       <!-- CAMPOS -->
@@ -157,8 +166,7 @@
         <div>
           <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Contraseña</p>
           <p class="text-gray-700 font-medium">••••••••</p>
-          <button id="btnAbrirPassword"
-            class="hidden mt-1 text-xs text-pink-500 hover:text-pink-600 underline transition">
+          <button id="btnAbrirPassword" class="hidden mt-1 text-xs text-pink-500 hover:text-pink-600 underline transition">
             Editar contraseña
           </button>
         </div>
@@ -168,9 +176,25 @@
           <p id="generoPerfil" class="text-gray-700 font-medium capitalize"></p>
         </div>
 
+        <!-- PAREJA con ojito -->
         <div>
           <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Pareja</p>
-          <p id="parejaPerfil" class="text-gray-700 font-medium"></p>
+          <div class="flex items-center gap-2">
+            <p id="parejaPerfil" class="text-gray-700 font-medium"></p>
+            <button id="btnVerPareja"
+              class="text-purple-400 hover:text-purple-600 transition"
+              title="Ver perfil de tu pareja">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <!-- Apodo -->
+          <p id="apodoPareja" class="text-pink-400 text-xs mt-0.5 italic hidden"></p>
+          <button id="btnAbrirApodo" class="hidden mt-1 text-xs text-pink-500 hover:text-pink-600 underline transition">
+            Establecer apodo
+          </button>
         </div>
 
         <div>
@@ -183,13 +207,9 @@
       <!-- BOTONES EDICIÓN -->
       <div id="botonesEdicion" class="hidden mt-5 flex gap-3 justify-center">
         <button id="btnCancelarPerfil"
-          class="flex-1 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">
-          Cancelar
-        </button>
+          class="flex-1 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
         <button id="btnGuardarPerfil"
-          class="flex-1 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">
-          Guardar
-        </button>
+          class="flex-1 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Guardar</button>
       </div>
 
       <!-- CERRAR SESIÓN -->
