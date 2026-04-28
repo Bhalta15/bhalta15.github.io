@@ -7,7 +7,7 @@ import {
   reauthenticateWithCredential
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  doc, getDoc, updateDoc, setDoc, collection, onSnapshot
+  doc, getDoc, updateDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { mostrarToast } from "./toast.js";
 
@@ -46,11 +46,6 @@ const generoParejaModal      = document.getElementById("generoParejaModal");
 const codigoParejaModal      = document.getElementById("codigoParejaModal");
 const btnCerrarPerfilPareja  = document.getElementById("btnCerrarPerfilPareja");
 
-// Modal ver foto grande de la PAREJA (nuevo)
-const modalVerFotoPareja     = document.getElementById("modalVerFotoPareja");
-const fotoGrandePareja       = document.getElementById("fotoGrandePareja");
-const btnCerrarVerFotoPareja = document.getElementById("btnCerrarVerFotoPareja");
-
 // Modal preview foto nueva
 const modalFotoPreview       = document.getElementById("modalFotoPreview");
 const previewFotoPerfil      = document.getElementById("previewFotoPerfil");
@@ -61,11 +56,6 @@ const btnConfirmarFotoPreview= document.getElementById("btnConfirmarFotoPreview"
 const modalConfirmarGuardar  = document.getElementById("modalConfirmarGuardar");
 const btnCancelarGuardar     = document.getElementById("btnCancelarGuardar");
 const btnAceptarGuardar      = document.getElementById("btnAceptarGuardar");
-
-// Modal confirmar cancelar (nuevo)
-const modalConfirmarCancelar = document.getElementById("modalConfirmarCancelar");
-const btnSeguirEditando      = document.getElementById("btnSeguirEditando");
-const btnAceptarCancelar     = document.getElementById("btnAceptarCancelar");
 
 // Modal contraseña
 const modalPassword          = document.getElementById("modalPassword");
@@ -83,57 +73,14 @@ const btnCancelarApodo       = document.getElementById("btnCancelarApodo");
 const btnGuardarApodo        = document.getElementById("btnGuardarApodo");
 
 // ===== ESTADO =====
-let nuevaFotoBase64   = null;
-let eliminarFoto      = false;
-let fotoOriginal      = null;
-let modoEdicion       = false;
-let archivoFotoPrev   = null;
-let uid               = null;
-let codigoPareja      = null;
-let datosPareja       = null;
-
-// Cambios pendientes — solo se aplican al pulsar "Guardar" general
-let passwordPendiente = null; // { actual, nueva } | null
-let apodoPendiente    = null; // string | null  (null = sin cambio pendiente)
-let apodoOriginal     = "";   // valor real guardado en Firestore
-
-// Notis in-app
-let idsConocidosPerfil = null;
-let unsubscribeNotisPerfil = null;
-
-const mensajesInApp = {
-  mensaje: "Recibiste un mensaje nuevo 💬",
-  foto:    "Recibiste una foto nueva 📸",
-  cancion: "Recibiste una canción nueva 🎵",
-  frase:   "Recibiste una frase nueva 💭"
-};
-
-function iniciarNotisPerfil(codigoPar, miUidLocal) {
-  if (!codigoPar) return;
-  const ref = collection(db, "parejas", codigoPar, "contenido");
-  unsubscribeNotisPerfil = onSnapshot(ref, (snapshot) => {
-    const ids = new Set();
-    snapshot.forEach(d => ids.add(d.id));
-
-    if (idsConocidosPerfil === null) {
-      // Primera carga: solo registrar, sin toast
-      idsConocidosPerfil = ids;
-    } else {
-      snapshot.forEach(d => {
-        if (!idsConocidosPerfil.has(d.id) && d.data().autorUid !== miUidLocal) {
-          const tipo = d.data().tipo;
-          mostrarToast(mensajesInApp[tipo] || "Tu pareja compartió algo nuevo 💕", "info");
-        }
-        idsConocidosPerfil.add(d.id);
-      });
-    }
-  });
-}
-
-// Limpiar listener al salir de la página
-window.addEventListener("beforeunload", () => {
-  if (unsubscribeNotisPerfil) unsubscribeNotisPerfil();
-});
+let nuevaFotoBase64  = null;
+let eliminarFoto     = false;
+let fotoOriginal     = null;
+let modoEdicion      = false;
+let archivoFotoPrev  = null;
+let uid              = null;
+let codigoPareja     = null;
+let datosPareja      = null; // datos del otro usuario
 
 // ===== CARGAR USUARIO =====
 onAuthStateChanged(auth, async (user) => {
@@ -155,66 +102,40 @@ onAuthStateChanged(auth, async (user) => {
     fotoPerfil.src = fotoOriginal;
 
     // Apodo guardado
-    apodoOriginal = datos.apodoPareja || "";
-    actualizarApodoUI(apodoOriginal);
+    if (datos.apodoPareja) {
+      apodoPareja.textContent = `💕 ${datos.apodoPareja}`;
+      apodoPareja.classList.remove("hidden");
+    }
 
     await cargarDatosPareja(datos.codigo, user.uid);
-    iniciarNotisPerfil(datos.codigo, user.uid);
   }
 });
 
-// ===== APODO EN LÍNEA: "Baltazar (mi amor)" =====
-// El apodo se muestra en el mismo renglón que el nombre de la pareja
-function actualizarApodoUI(apodo) {
-  if (apodo) {
-    apodoPareja.textContent = `(${apodo})`;
-    apodoPareja.classList.remove("hidden");
-  } else {
-    apodoPareja.textContent = "";
-    apodoPareja.classList.add("hidden");
-  }
-}
-
-// ===== CARGAR DATOS PAREJA =====
 async function cargarDatosPareja(codigo, miUid) {
-  if (!codigo) {
-    parejaPerfil.textContent = "Sin pareja registrada";
-    btnVerPareja.classList.add("hidden");
-    return;
-  }
+  if (!codigo) { parejaPerfil.textContent = "Sin pareja registrada"; btnVerPareja.classList.add("hidden"); return; }
   try {
     const parejaDoc = await getDoc(doc(db, "parejas", codigo));
-    if (!parejaDoc.exists()) {
-      parejaPerfil.textContent = "Sin pareja registrada";
-      btnVerPareja.classList.add("hidden");
-      return;
-    }
+    if (!parejaDoc.exists()) { parejaPerfil.textContent = "Sin pareja registrada"; btnVerPareja.classList.add("hidden"); return; }
 
     const miembros = parejaDoc.data()?.usuarios || [];
     const uidPareja = miembros.find(u => u !== miUid);
-    if (!uidPareja) {
-      parejaPerfil.textContent = "Sin pareja registrada";
-      btnVerPareja.classList.add("hidden");
-      return;
-    }
+    if (!uidPareja) { parejaPerfil.textContent = "Sin pareja registrada"; btnVerPareja.classList.add("hidden"); return; }
 
     const parejaSnap = await getDoc(doc(db, "usuarios", uidPareja));
     if (parejaSnap.exists()) {
       datosPareja = { uid: uidPareja, ...parejaSnap.data() };
       parejaPerfil.textContent = datosPareja.usuario || "—";
     }
-  } catch {
-    parejaPerfil.textContent = "—";
-  }
+  } catch { parejaPerfil.textContent = "—"; }
 }
 
 // ===== VER PERFIL PAREJA =====
 btnVerPareja.onclick = () => {
   if (!datosPareja) return;
   fotoParejaPerfil.src = datosPareja.foto || generarAvatar(datosPareja.usuario);
-  nombreParejaModal.textContent = datosPareja.usuario || "—";
-  generoParejaModal.textContent = datosPareja.genero  || "—";
-  codigoParejaModal.textContent = codigoPareja         || "—";
+  nombreParejaModal.textContent  = datosPareja.usuario || "—";
+  generoParejaModal.textContent  = datosPareja.genero  || "—";
+  codigoParejaModal.textContent  = codigoPareja         || "—";
   modalPerfilPareja.classList.remove("hidden");
   modalPerfilPareja.classList.add("flex");
 };
@@ -224,20 +145,7 @@ btnCerrarPerfilPareja.onclick = () => {
   modalPerfilPareja.classList.remove("flex");
 };
 
-// ===== VER FOTO GRANDE DE LA PAREJA (nuevo) =====
-fotoParejaPerfil.addEventListener("click", () => {
-  if (!fotoParejaPerfil.src) return;
-  fotoGrandePareja.src = fotoParejaPerfil.src;
-  modalVerFotoPareja.classList.remove("hidden");
-  modalVerFotoPareja.classList.add("flex");
-});
-
-btnCerrarVerFotoPareja.onclick = () => {
-  modalVerFotoPareja.classList.add("hidden");
-  modalVerFotoPareja.classList.remove("flex");
-};
-
-// ===== FOTO PROPIA — click =====
+// ===== FOTO — click =====
 contenedorFoto.addEventListener("click", () => {
   if (modoEdicion) {
     inputFotoPerfil.click();
@@ -290,10 +198,7 @@ btnEliminarFoto.onclick = () => {
 
 // ===== MODO EDICIÓN =====
 btnEditarPerfil.onclick = () => {
-  modoEdicion       = true;
-  passwordPendiente = null;
-  apodoPendiente    = null;
-
+  modoEdicion = true;
   inputNombrePerfil.value = nombrePerfil.textContent;
 
   nombrePerfil.classList.add("hidden");
@@ -305,6 +210,7 @@ btnEditarPerfil.onclick = () => {
   btnCerrarSesionPerfil.classList.add("hidden");
   btnEditarPerfil.classList.add("hidden");
 
+  // Mostrar overlay lápiz siempre en edición
   overlayFoto.classList.remove("opacity-0");
   overlayFoto.classList.add("opacity-100");
   overlayFoto.style.backgroundColor = "rgba(0,0,0,0.35)";
@@ -312,12 +218,10 @@ btnEditarPerfil.onclick = () => {
 };
 
 function salirModoEdicion() {
-  modoEdicion       = false;
-  nuevaFotoBase64   = null;
-  eliminarFoto      = false;
-  archivoFotoPrev   = null;
-  passwordPendiente = null;
-  apodoPendiente    = null;
+  modoEdicion      = false;
+  nuevaFotoBase64  = null;
+  eliminarFoto     = false;
+  archivoFotoPrev  = null;
 
   nombrePerfil.classList.remove("hidden");
   inputNombrePerfil.classList.add("hidden");
@@ -334,32 +238,13 @@ function salirModoEdicion() {
 
   fotoPerfil.src = fotoOriginal;
   inputFotoPerfil.value = "";
-
-  // Restaurar apodo original en pantalla (descarta el pendiente)
-  actualizarApodoUI(apodoOriginal);
 }
 
-// ===== CANCELAR PERFIL → Modal de confirmación (nuevo) =====
-btnCancelarPerfil.onclick = () => {
-  modalConfirmarCancelar.classList.remove("hidden");
-  modalConfirmarCancelar.classList.add("flex");
-};
+btnCancelarPerfil.onclick = salirModoEdicion;
 
-btnSeguirEditando.onclick = () => {
-  modalConfirmarCancelar.classList.add("hidden");
-  modalConfirmarCancelar.classList.remove("flex");
-};
-
-btnAceptarCancelar.onclick = () => {
-  modalConfirmarCancelar.classList.add("hidden");
-  modalConfirmarCancelar.classList.remove("flex");
-  salirModoEdicion();
-};
-
-// ===== APODO — solo guarda pendiente, no a Firestore aún =====
+// ===== APODO =====
 btnAbrirApodo.onclick = () => {
-  // Muestra el valor pendiente si ya se editó antes, o el original
-  inputApodo.value = apodoPendiente !== null ? apodoPendiente : apodoOriginal;
+  inputApodo.value = apodoPareja.textContent.replace("💕 ", "") || "";
   modalApodo.classList.remove("hidden");
   modalApodo.classList.add("flex");
 };
@@ -369,18 +254,26 @@ btnCancelarApodo.onclick = () => {
   modalApodo.classList.remove("flex");
 };
 
-btnGuardarApodo.onclick = () => {
+btnGuardarApodo.onclick = async () => {
   const apodo = inputApodo.value.trim();
-  apodoPendiente = apodo; // queda en memoria, NO va a Firestore aquí
-
-  // Preview inmediato en pantalla (se revertirá si se cancela el perfil)
-  actualizarApodoUI(apodo);
-
-  modalApodo.classList.add("hidden");
-  modalApodo.classList.remove("flex");
+  try {
+    await updateDoc(doc(db, "usuarios", uid), { apodoPareja: apodo });
+    if (apodo) {
+      apodoPareja.textContent = `💕 ${apodo}`;
+      apodoPareja.classList.remove("hidden");
+    } else {
+      apodoPareja.textContent = "";
+      apodoPareja.classList.add("hidden");
+    }
+    mostrarToast("Apodo guardado ✅", "exito");
+    modalApodo.classList.add("hidden");
+    modalApodo.classList.remove("flex");
+  } catch {
+    mostrarToast("Error al guardar apodo", "error");
+  }
 };
 
-// ===== CONTRASEÑA — solo guarda pendiente, no cambia aún =====
+// ===== MODAL CONTRASEÑA =====
 btnAbrirPassword.onclick = () => {
   inputPasswordActual.value = "";
   inputPasswordNueva.value  = "";
@@ -395,7 +288,7 @@ btnCancelarPassword.onclick = () => {
   modalPassword.classList.remove("flex");
 };
 
-btnGuardarPassword.onclick = () => {
+btnGuardarPassword.onclick = async () => {
   const actual = inputPasswordActual.value.trim();
   const nueva  = inputPasswordNueva.value.trim();
   let valido   = true;
@@ -415,13 +308,25 @@ btnGuardarPassword.onclick = () => {
   }
   if (!valido) return;
 
-  // Guardar en memoria — NO se aplica hasta "Guardar" general
-  passwordPendiente = { actual, nueva };
-  modalPassword.classList.add("hidden");
-  modalPassword.classList.remove("flex");
+  try {
+    const user = auth.currentUser;
+    const credential = EmailAuthProvider.credential(user.email, actual);
+    await reauthenticateWithCredential(user, credential);
+    await updatePassword(user, nueva);
+    mostrarToast("Contraseña editada ✅", "exito");
+    modalPassword.classList.add("hidden");
+    modalPassword.classList.remove("flex");
+  } catch (error) {
+    if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+      errorPasswordActual.textContent = "Contraseña incorrecta";
+      errorPasswordActual.classList.remove("hidden");
+    } else {
+      mostrarToast("Error al cambiar contraseña", "error");
+    }
+  }
 };
 
-// ===== GUARDAR PERFIL (aplica TODO junto) =====
+// ===== GUARDAR PERFIL =====
 btnGuardarPerfil.onclick = () => {
   const nuevoNombre = inputNombrePerfil.value.trim();
   if (!nuevoNombre) { mostrarToast("El nombre no puede estar vacío", "error"); return; }
@@ -439,39 +344,13 @@ btnAceptarGuardar.onclick = async () => {
   modalConfirmarGuardar.classList.remove("flex");
 
   const nuevoNombre = inputNombrePerfil.value.trim();
-
   try {
-    // 1. Cambiar contraseña si hay pendiente
-    if (passwordPendiente) {
-      const user = auth.currentUser;
-      const credential = EmailAuthProvider.credential(user.email, passwordPendiente.actual);
-      try {
-        await reauthenticateWithCredential(user, credential);
-        await updatePassword(user, passwordPendiente.nueva);
-      } catch (error) {
-        if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
-          mostrarToast("Contraseña actual incorrecta — no se guardaron los cambios", "error");
-        } else {
-          mostrarToast("Error al cambiar contraseña", "error");
-        }
-        return; // detener todo si la contraseña falla
-      }
-    }
-
-    // 2. Preparar update de Firestore
     const updateData = { usuario: nuevoNombre };
-    if (nuevaFotoBase64) updateData.foto = nuevaFotoBase64;
-    if (eliminarFoto)    updateData.foto = null;
-
-    // 3. Apodo pendiente
-    if (apodoPendiente !== null) {
-      updateData.apodoPareja = apodoPendiente;
-      apodoOriginal = apodoPendiente; // ya es el nuevo "original"
-    }
+    if (nuevaFotoBase64)  updateData.foto = nuevaFotoBase64;
+    if (eliminarFoto)     updateData.foto = null;
 
     await updateDoc(doc(db, "usuarios", uid), updateData);
 
-    // 4. Actualizar UI
     nombrePerfil.textContent = nuevoNombre;
     if (nuevaFotoBase64)   fotoOriginal = nuevaFotoBase64;
     else if (eliminarFoto) fotoOriginal = generarAvatar(nuevoNombre);
