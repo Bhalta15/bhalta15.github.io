@@ -563,40 +563,40 @@ function iniciarTiempoReal() {
 
   const ref = collection(db, "parejas", codigoPareja, "contenido");
 
-  unsubscribe = onSnapshot(ref, (snapshot) => {
-    const datos = [];
-    snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
-    datos.sort((a, b) => {
-      const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
-      const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
-      return fb - fa;
-    });
+ unsubscribe = onSnapshot(ref, async (snapshot) => {
+  const datos = [];
+  snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
 
-    // ===== DETECCIÓN DE CONTENIDO NUEVO IN-APP =====
-    if (idsConocidos === null) {
-      // Primera carga: registrar todos los IDs existentes sin mostrar toast
-      idsConocidos = new Set(datos.map(d => d.id));
-    } else {
-      // Cargas posteriores: detectar IDs nuevos que no son míos
-      for (const d of datos) {
-        if (!idsConocidos.has(d.id) && d.autorUid !== miUid) {
-          // Recargar apodo por si acaba de cambiar
-          await cargarApodoPareja();
-          // Obtener nombre de la pareja para el toast
-          let nombrePareja = "";
-          try {
-            const parejaSnap = await getDoc(doc(db, "usuarios", d.autorUid));
-            if (parejaSnap.exists()) nombrePareja = parejaSnap.data().usuario || "";
-          } catch { /* silencioso */ }
-          await mostrarToastInApp(d.tipo, nombrePareja);
-        }
-        idsConocidos.add(d.id);
-      }
-    }
-
-    datosGlobal = datos;
-    renderTodo(datos);
+  datos.sort((a, b) => {
+    const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
+    const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
+    return fb - fa;
   });
+
+  // ===== DETECCIÓN DE CONTENIDO NUEVO IN-APP =====
+  if (idsConocidos === null) {
+    idsConocidos = new Set(datos.map(d => d.id));
+  } else {
+    for (const d of datos) {
+      if (!idsConocidos.has(d.id) && d.autorUid !== miUid) {
+
+        await cargarApodoPareja();
+
+        let nombrePareja = "";
+        try {
+          const parejaSnap = await getDoc(doc(db, "usuarios", d.autorUid));
+          if (parejaSnap.exists()) nombrePareja = parejaSnap.data().usuario || "";
+        } catch {}
+
+        await mostrarToastInApp(d.tipo, nombrePareja);
+      }
+      idsConocidos.add(d.id);
+    }
+  }
+
+  datosGlobal = datos;
+  renderTodo(datos);
+});
 }
 
 // ===== FECHAS =====
