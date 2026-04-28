@@ -1,4 +1,3 @@
-// ===== FIREBASE =====
 import { db, auth } from "./firebase.js";
 import {
   onAuthStateChanged,
@@ -103,13 +102,21 @@ async function notificarPareja(tipo) {
     const oneSignalId = parejaUserSnap.data()?.oneSignalId;
     if (!oneSignalId) return;
 
+    // Cargar el apodo que la pareja me puso a mí
+    const miSnap = await getDoc(doc(db, "usuarios", uidPareja));
+    const apodoQueEllaUsaParaMi = miSnap.exists() ? (miSnap.data().apodoPareja || "") : "";
+
+    // El nombre que verá la pareja en la noti
+    const miNombre = document.getElementById("userName").textContent;
+    const nombreEnNoti = apodoQueEllaUsaParaMi || miNombre;
+
     await fetch("https://daily-love-server.onrender.com/notificar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         oneSignalId,
         tipo,
-        nombreUsuario: document.getElementById("userName").textContent
+        nombreUsuario: nombreEnNoti  // ← ahora manda apodo si existe
       })
     });
   } catch (e) {

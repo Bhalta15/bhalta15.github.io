@@ -4,7 +4,9 @@ import {
   signOut,
   updatePassword,
   EmailAuthProvider,
-  reauthenticateWithCredential
+  reauthenticateWithCredential,
+  setPersistence,
+  browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   doc, getDoc, updateDoc, setDoc, collection, onSnapshot
@@ -46,7 +48,7 @@ const generoParejaModal      = document.getElementById("generoParejaModal");
 const codigoParejaModal      = document.getElementById("codigoParejaModal");
 const btnCerrarPerfilPareja  = document.getElementById("btnCerrarPerfilPareja");
 
-// Modal ver foto grande de la PAREJA (nuevo)
+// Modal ver foto grande de la PAREJA
 const modalVerFotoPareja     = document.getElementById("modalVerFotoPareja");
 const fotoGrandePareja       = document.getElementById("fotoGrandePareja");
 const btnCerrarVerFotoPareja = document.getElementById("btnCerrarVerFotoPareja");
@@ -62,7 +64,7 @@ const modalConfirmarGuardar  = document.getElementById("modalConfirmarGuardar");
 const btnCancelarGuardar     = document.getElementById("btnCancelarGuardar");
 const btnAceptarGuardar      = document.getElementById("btnAceptarGuardar");
 
-// Modal confirmar cancelar (nuevo)
+// Modal confirmar cancelar
 const modalConfirmarCancelar = document.getElementById("modalConfirmarCancelar");
 const btnSeguirEditando      = document.getElementById("btnSeguirEditando");
 const btnAceptarCancelar     = document.getElementById("btnAceptarCancelar");
@@ -92,13 +94,12 @@ let uid               = null;
 let codigoPareja      = null;
 let datosPareja       = null;
 
-// Cambios pendientes — solo se aplican al pulsar "Guardar" general
-let passwordPendiente = null; // { actual, nueva } | null
-let apodoPendiente    = null; // string | null  (null = sin cambio pendiente)
-let apodoOriginal     = "";   // valor real guardado en Firestore
+let passwordPendiente = null;
+let apodoPendiente    = null;
+let apodoOriginal     = "";
 
 // Notis in-app
-let idsConocidosPerfil = null;
+let idsConocidosPerfil     = null;
 let unsubscribeNotisPerfil = null;
 
 const mensajesInApp = {
@@ -116,7 +117,6 @@ function iniciarNotisPerfil(codigoPar, miUidLocal) {
     snapshot.forEach(d => ids.add(d.id));
 
     if (idsConocidosPerfil === null) {
-      // Primera carga: solo registrar, sin toast
       idsConocidosPerfil = ids;
     } else {
       snapshot.forEach(d => {
@@ -130,41 +130,42 @@ function iniciarNotisPerfil(codigoPar, miUidLocal) {
   });
 }
 
-// Limpiar listener al salir de la página
 window.addEventListener("beforeunload", () => {
   if (unsubscribeNotisPerfil) unsubscribeNotisPerfil();
 });
 
 // ===== CARGAR USUARIO =====
-onAuthStateChanged(auth, async (user) => {
-  if (!user) { window.location.href = "registro.html"; return; }
+setPersistence(auth, browserLocalPersistence).then(() => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { window.location.href = "registro.html"; return; }
 
-  uid = user.uid;
-  const snap = await getDoc(doc(db, "usuarios", user.uid));
+    uid = user.uid;
+    const snap = await getDoc(doc(db, "usuarios", user.uid));
 
-  if (snap.exists()) {
-    const datos = snap.data();
-    codigoPareja = datos.codigo;
+    if (snap.exists()) {
+      const datos = snap.data();
+      codigoPareja = datos.codigo;
 
-    nombrePerfil.textContent = datos.usuario;
-    correoPerfil.textContent = user.email;
-    generoPerfil.textContent = datos.genero || "—";
-    codigoPerfil.textContent = datos.codigo || "—";
+      nombrePerfil.textContent = datos.usuario;
+      correoPerfil.textContent = user.email;
+      generoPerfil.textContent = datos.genero || "—";
+      codigoPerfil.textContent = datos.codigo || "—";
 
-    fotoOriginal = datos.foto || generarAvatar(datos.usuario);
-    fotoPerfil.src = fotoOriginal;
+      fotoOriginal = datos.foto || generarAvatar(datos.usuario);
+      fotoPerfil.src = fotoOriginal;
 
-    // Apodo guardado
-    apodoOriginal = datos.apodoPareja || "";
-    actualizarApodoUI(apodoOriginal);
+      apodoOriginal = datos.apodoPareja || "";
+      actualizarApodoUI(apodoOriginal);
 
-    await cargarDatosPareja(datos.codigo, user.uid);
-    iniciarNotisPerfil(datos.codigo, user.uid);
-  }
+      await cargarDatosPareja(datos.codigo, user.uid);
+      iniciarNotisPerfil(datos.codigo, user.uid);
+    } else {
+      window.location.href = "registro.html";
+    }
+  });
 });
 
-// ===== APODO EN LÍNEA: "Baltazar (mi amor)" =====
-// El apodo se muestra en el mismo renglón que el nombre de la pareja
+// ===== APODO UI =====
 function actualizarApodoUI(apodo) {
   if (apodo) {
     apodoPareja.textContent = `(${apodo})`;
@@ -224,7 +225,7 @@ btnCerrarPerfilPareja.onclick = () => {
   modalPerfilPareja.classList.remove("flex");
 };
 
-// ===== VER FOTO GRANDE DE LA PAREJA (nuevo) =====
+// ===== VER FOTO GRANDE PAREJA =====
 fotoParejaPerfil.addEventListener("click", () => {
   if (!fotoParejaPerfil.src) return;
   fotoGrandePareja.src = fotoParejaPerfil.src;
@@ -237,7 +238,7 @@ btnCerrarVerFotoPareja.onclick = () => {
   modalVerFotoPareja.classList.remove("flex");
 };
 
-// ===== FOTO PROPIA — click =====
+// ===== FOTO PROPIA =====
 contenedorFoto.addEventListener("click", () => {
   if (modoEdicion) {
     inputFotoPerfil.click();
@@ -335,11 +336,10 @@ function salirModoEdicion() {
   fotoPerfil.src = fotoOriginal;
   inputFotoPerfil.value = "";
 
-  // Restaurar apodo original en pantalla (descarta el pendiente)
   actualizarApodoUI(apodoOriginal);
 }
 
-// ===== CANCELAR PERFIL → Modal de confirmación (nuevo) =====
+// ===== CANCELAR PERFIL =====
 btnCancelarPerfil.onclick = () => {
   modalConfirmarCancelar.classList.remove("hidden");
   modalConfirmarCancelar.classList.add("flex");
@@ -356,9 +356,8 @@ btnAceptarCancelar.onclick = () => {
   salirModoEdicion();
 };
 
-// ===== APODO — solo guarda pendiente, no a Firestore aún =====
+// ===== APODO =====
 btnAbrirApodo.onclick = () => {
-  // Muestra el valor pendiente si ya se editó antes, o el original
   inputApodo.value = apodoPendiente !== null ? apodoPendiente : apodoOriginal;
   modalApodo.classList.remove("hidden");
   modalApodo.classList.add("flex");
@@ -371,16 +370,13 @@ btnCancelarApodo.onclick = () => {
 
 btnGuardarApodo.onclick = () => {
   const apodo = inputApodo.value.trim();
-  apodoPendiente = apodo; // queda en memoria, NO va a Firestore aquí
-
-  // Preview inmediato en pantalla (se revertirá si se cancela el perfil)
+  apodoPendiente = apodo;
   actualizarApodoUI(apodo);
-
   modalApodo.classList.add("hidden");
   modalApodo.classList.remove("flex");
 };
 
-// ===== CONTRASEÑA — solo guarda pendiente, no cambia aún =====
+// ===== CONTRASEÑA =====
 btnAbrirPassword.onclick = () => {
   inputPasswordActual.value = "";
   inputPasswordNueva.value  = "";
@@ -415,13 +411,12 @@ btnGuardarPassword.onclick = () => {
   }
   if (!valido) return;
 
-  // Guardar en memoria — NO se aplica hasta "Guardar" general
   passwordPendiente = { actual, nueva };
   modalPassword.classList.add("hidden");
   modalPassword.classList.remove("flex");
 };
 
-// ===== GUARDAR PERFIL (aplica TODO junto) =====
+// ===== GUARDAR PERFIL =====
 btnGuardarPerfil.onclick = () => {
   const nuevoNombre = inputNombrePerfil.value.trim();
   if (!nuevoNombre) { mostrarToast("El nombre no puede estar vacío", "error"); return; }
@@ -441,7 +436,6 @@ btnAceptarGuardar.onclick = async () => {
   const nuevoNombre = inputNombrePerfil.value.trim();
 
   try {
-    // 1. Cambiar contraseña si hay pendiente
     if (passwordPendiente) {
       const user = auth.currentUser;
       const credential = EmailAuthProvider.credential(user.email, passwordPendiente.actual);
@@ -454,24 +448,21 @@ btnAceptarGuardar.onclick = async () => {
         } else {
           mostrarToast("Error al cambiar contraseña", "error");
         }
-        return; // detener todo si la contraseña falla
+        return;
       }
     }
 
-    // 2. Preparar update de Firestore
     const updateData = { usuario: nuevoNombre };
     if (nuevaFotoBase64) updateData.foto = nuevaFotoBase64;
     if (eliminarFoto)    updateData.foto = null;
 
-    // 3. Apodo pendiente
     if (apodoPendiente !== null) {
       updateData.apodoPareja = apodoPendiente;
-      apodoOriginal = apodoPendiente; // ya es el nuevo "original"
+      apodoOriginal = apodoPendiente;
     }
 
     await updateDoc(doc(db, "usuarios", uid), updateData);
 
-    // 4. Actualizar UI
     nombrePerfil.textContent = nuevoNombre;
     if (nuevaFotoBase64)   fotoOriginal = nuevaFotoBase64;
     else if (eliminarFoto) fotoOriginal = generarAvatar(nuevoNombre);
