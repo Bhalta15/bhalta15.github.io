@@ -151,7 +151,6 @@ async function mostrarToastInApp(tipo, nombreUsuarioPareja) {
 // ===== SESIÓN PERSISTENTE =====
 setPersistence(auth, browserLocalPersistence).then(() => {
   onAuthStateChanged(auth, async (user) => {
-
     if (!user) {
       window.location.href = "registro.html";
       return;
@@ -160,46 +159,44 @@ setPersistence(auth, browserLocalPersistence).then(() => {
     try {
       const snap = await getDoc(doc(db, "usuarios", user.uid));
 
-      // 🔥 SI NO EXISTE EL USUARIO EN FIRESTORE → FORZAR LOGIN
-      if (!snap.exists()) {
-        await signOut(auth);
-        window.location.href = "registro.html";
-        return;
-      }
+      if (snap.exists()) {
+        const datos  = snap.data();
+        miUid        = user.uid;
+        miGenero     = datos.genero;
+        codigoPareja = datos.codigo;
 
-      const datos = snap.data();
+        const userNameEl     = document.getElementById("userName");
+        const userNameMainEl = document.getElementById("userNameMain");
 
-      // 🔥 SI NO TIENE CODIGO DE PAREJA → TAMBIÉN LO SACAS
-      if (!datos.codigo) {
-        await signOut(auth);
-        window.location.href = "registro.html";
-        return;
-      }
+        if (userNameEl)     userNameEl.textContent     = datos.usuario;
+        if (userNameMainEl) userNameMainEl.textContent = datos.usuario;
 
-      // ✅ TODO BIEN → SIGUE NORMAL
-      miUid = user.uid;
-      miGenero = datos.genero;
-      codigoPareja = datos.codigo;
+        if (fotoPerfilHeader) {
+          fotoPerfilHeader.src = datos.foto
+            ? datos.foto
+            : `https://ui-avatars.com/api/?name=${datos.usuario}&background=EC4899&color=fff`;
+        }
 
-      const userNameEl = document.getElementById("userName");
-      const userNameMainEl = document.getElementById("userNameMain");
+        if (btnPerfil && !btnPerfil.dataset.listener) {
+          btnPerfil.onclick = () => { window.location.href = "perfil.html"; };
+          btnPerfil.dataset.listener = "true";
+        }
 
-      if (userNameEl) userNameEl.textContent = datos.usuario;
-      if (userNameMainEl) userNameMainEl.textContent = datos.usuario;
-
-      if (fotoPerfilHeader) {
-        fotoPerfilHeader.src = datos.foto
-          ? datos.foto
-          : `https://ui-avatars.com/api/?name=${datos.usuario}&background=EC4899&color=fff`;
-      }
-
-      if (btnPerfil && !btnPerfil.dataset.listener) {
-        btnPerfil.onclick = () => { window.location.href = "perfil.html"; };
-        btnPerfil.dataset.listener = "true";
+        if (!sessionStorage.getItem("bienvenidaMostrada")) {
+          mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
+          sessionStorage.setItem("bienvenidaMostrada", "1");
+        }
       }
 
       await cargarApodoPareja();
       iniciarTiempoReal();
+
+      if (typeof OneSignal !== "undefined") {
+        await iniciarOneSignal();
+      } else {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async () => { await iniciarOneSignal(); });
+      }
 
     } catch (error) {
       console.error("Error cargando usuario:", error);
@@ -566,40 +563,40 @@ function iniciarTiempoReal() {
 
   const ref = collection(db, "parejas", codigoPareja, "contenido");
 
- unsubscribe = onSnapshot(ref, async (snapshot) => {
-  const datos = [];
-  snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
+  unsubscribe = onSnapshot(ref, (snapshot) => {
+    const datos = [];
+    snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
+    datos.sort((a, b) => {
+      const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
+      const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
+      return fb - fa;
+    });
 
-  datos.sort((a, b) => {
-    const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
-    const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
-    return fb - fa;
-  });
-
-  // ===== DETECCIÓN DE CONTENIDO NUEVO IN-APP =====
-  if (idsConocidos === null) {
-    idsConocidos = new Set(datos.map(d => d.id));
-  } else {
-    for (const d of datos) {
-      if (!idsConocidos.has(d.id) && d.autorUid !== miUid) {
-
-        await cargarApodoPareja();
-
-        let nombrePareja = "";
-        try {
-          const parejaSnap = await getDoc(doc(db, "usuarios", d.autorUid));
-          if (parejaSnap.exists()) nombrePareja = parejaSnap.data().usuario || "";
-        } catch {}
-
-        await mostrarToastInApp(d.tipo, nombrePareja);
+    // ===== DETECCIÓN DE CONTENIDO NUEVO IN-APP =====
+    if (idsConocidos === null) {
+      // Primera carga: registrar todos los IDs existentes sin mostrar toast
+      idsConocidos = new Set(datos.map(d => d.id));
+    } else {
+      // Cargas posteriores: detectar IDs nuevos que no son míos
+      for (const d of datos) {
+        if (!idsConocidos.has(d.id) && d.autorUid !== miUid) {
+          // Recargar apodo por si acaba de cambiar
+          await cargarApodoPareja();
+          // Obtener nombre de la pareja para el toast
+          let nombrePareja = "";
+          try {
+            const parejaSnap = await getDoc(doc(db, "usuarios", d.autorUid));
+            if (parejaSnap.exists()) nombrePareja = parejaSnap.data().usuario || "";
+          } catch { /* silencioso */ }
+          await mostrarToastInApp(d.tipo, nombrePareja);
+        }
+        idsConocidos.add(d.id);
       }
-      idsConocidos.add(d.id);
     }
-  }
 
-  datosGlobal = datos;
-  renderTodo(datos);
-});
+    datosGlobal = datos;
+    renderTodo(datos);
+  });
 }
 
 // ===== FECHAS =====
