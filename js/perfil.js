@@ -7,7 +7,7 @@ import {
   reauthenticateWithCredential
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  doc, getDoc, updateDoc, setDoc
+  doc, getDoc, updateDoc, setDoc, collection, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { mostrarToast } from "./toast.js";
 
@@ -97,6 +97,44 @@ let passwordPendiente = null; // { actual, nueva } | null
 let apodoPendiente    = null; // string | null  (null = sin cambio pendiente)
 let apodoOriginal     = "";   // valor real guardado en Firestore
 
+// Notis in-app
+let idsConocidosPerfil = null;
+let unsubscribeNotisPerfil = null;
+
+const mensajesInApp = {
+  mensaje: "Recibiste un mensaje nuevo 💬",
+  foto:    "Recibiste una foto nueva 📸",
+  cancion: "Recibiste una canción nueva 🎵",
+  frase:   "Recibiste una frase nueva 💭"
+};
+
+function iniciarNotisPerfil(codigoPar, miUidLocal) {
+  if (!codigoPar) return;
+  const ref = collection(db, "parejas", codigoPar, "contenido");
+  unsubscribeNotisPerfil = onSnapshot(ref, (snapshot) => {
+    const ids = new Set();
+    snapshot.forEach(d => ids.add(d.id));
+
+    if (idsConocidosPerfil === null) {
+      // Primera carga: solo registrar, sin toast
+      idsConocidosPerfil = ids;
+    } else {
+      snapshot.forEach(d => {
+        if (!idsConocidosPerfil.has(d.id) && d.data().autorUid !== miUidLocal) {
+          const tipo = d.data().tipo;
+          mostrarToast(mensajesInApp[tipo] || "Tu pareja compartió algo nuevo 💕", "info");
+        }
+        idsConocidosPerfil.add(d.id);
+      });
+    }
+  });
+}
+
+// Limpiar listener al salir de la página
+window.addEventListener("beforeunload", () => {
+  if (unsubscribeNotisPerfil) unsubscribeNotisPerfil();
+});
+
 // ===== CARGAR USUARIO =====
 onAuthStateChanged(auth, async (user) => {
   if (!user) { window.location.href = "registro.html"; return; }
@@ -121,6 +159,7 @@ onAuthStateChanged(auth, async (user) => {
     actualizarApodoUI(apodoOriginal);
 
     await cargarDatosPareja(datos.codigo, user.uid);
+    iniciarNotisPerfil(datos.codigo, user.uid);
   }
 });
 
@@ -337,7 +376,6 @@ btnGuardarApodo.onclick = () => {
   // Preview inmediato en pantalla (se revertirá si se cancela el perfil)
   actualizarApodoUI(apodo);
 
-  mostrarToast("Apodo listo ✏️ — guarda el perfil para aplicarlo", "info");
   modalApodo.classList.add("hidden");
   modalApodo.classList.remove("flex");
 };
@@ -379,7 +417,6 @@ btnGuardarPassword.onclick = () => {
 
   // Guardar en memoria — NO se aplica hasta "Guardar" general
   passwordPendiente = { actual, nueva };
-  mostrarToast("Contraseña lista ✏️ — guarda el perfil para aplicarla", "info");
   modalPassword.classList.add("hidden");
   modalPassword.classList.remove("flex");
 };
