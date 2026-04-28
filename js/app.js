@@ -164,6 +164,12 @@ setPersistence(auth, browserLocalPersistence).then(() => {
         miUid        = user.uid;
         miGenero     = datos.genero;
         codigoPareja = datos.codigo;
+        // ← AGREGAR ESTO
+  if (!codigoPareja) {
+    console.warn("Usuario sin código de pareja, redirigiendo...");
+    window.location.href = "registro.html"; // o donde completen el registro
+    return;
+  }
 
         const userNameEl     = document.getElementById("userName");
         const userNameMainEl = document.getElementById("userNameMain");
@@ -563,7 +569,7 @@ function iniciarTiempoReal() {
 
   const ref = collection(db, "parejas", codigoPareja, "contenido");
 
-  unsubscribe = onSnapshot(ref, (snapshot) => {
+  unsubscribe = onSnapshot(ref, async (snapshot) => {
     const datos = [];
     snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
     datos.sort((a, b) => {
