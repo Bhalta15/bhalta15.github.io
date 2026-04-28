@@ -149,7 +149,7 @@ async function cargarApodoPareja() {
   try {
     const snap = await getDoc(doc(db, "usuarios", miUid));
     if (snap.exists()) apodoDePareja = snap.data().apodoPareja || "";
-  } catch { apodoDePareja = ""; }
+  } catch (_e) { apodoDePareja = ""; }
 }
 
 function nombreRemitente(nombreUsuarioPareja) {
@@ -407,7 +407,7 @@ function abrirModalEditar(d) {
       const parsed = JSON.parse(d.contenido);
       editDescCancion.value = parsed.desc || "";
       editLinkCancion.value = parsed.link || "";
-    } catch {
+    } catch (_e) {
       editLinkCancion.value = d.contenido;
     }
   } else if (d.tipo === "foto") {
@@ -577,7 +577,7 @@ function iniciarTiempoReal() {
 
   const ref = collection(db, "parejas", codigoPareja, "contenido");
 
-  unsubscribe = onSnapshot(ref, (snapshot) => {
+  unsubscribe = onSnapshot(ref, async (snapshot) => {
     const datos = [];
     snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
     datos.sort((a, b) => {
@@ -601,7 +601,7 @@ function iniciarTiempoReal() {
           try {
             const parejaSnap = await getDoc(doc(db, "usuarios", d.autorUid));
             if (parejaSnap.exists()) nombrePareja = parejaSnap.data().usuario || "";
-          } catch { /* silencioso */ }
+          } catch (_e) { /* silencioso */ }
           await mostrarToastInApp(d.tipo, nombrePareja);
         }
         idsConocidos.add(d.id);
@@ -717,7 +717,7 @@ function crearCardHTML(d, enModoEliminar) {
     try {
       const parsed = JSON.parse(d.contenido);
       desc = parsed.desc; link = parsed.link;
-    } catch { link = d.contenido; }
+    } catch (_e) { link = d.contenido; }
 
     return `
       <div data-id="${d.id}"
