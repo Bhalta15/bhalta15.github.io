@@ -22,9 +22,6 @@ let unsubscribe    = null;
 let gruposAbiertos = {};
 let datosGlobal    = [];
 
-// IDs ya conocidos al cargar — para detectar solo los NUEVOS
-let idsConocidos = null; // null = todavía no inicializado
-
 const modoEliminar  = { mensaje: false, foto: false, cancion: false, frase: false };
 const seleccionados = { mensaje: new Set(), foto: new Set(), cancion: new Set(), frase: new Set() };
 
@@ -68,18 +65,21 @@ const btnPerfil        = document.getElementById('btnPerfil');
 async function iniciarOneSignal() {
   try {
     await OneSignal.init({
-      appId: ONESIGNAL_APP_ID,
-      serviceWorkerPath: "/OneSignalSDKWorker.js",
-      serviceWorkerParam: { scope: "/" },
-      notifyButton: { enable: false },
-      allowLocalhostAsSecureOrigin: true
-    });
+  appId: ONESIGNAL_APP_ID,
+  serviceWorkerPath: "/OneSignalSDKWorker.js",
+  serviceWorkerParam: { scope: "/" },
+  notifyButton: { enable: false },
+  allowLocalhostAsSecureOrigin: true
+});
 
+    // Pedir permiso
     const permission = await OneSignal.Notifications.requestPermission();
     if (!permission) return;
 
+    // Obtener el Player ID (External ID) del usuario
     const playerId = await OneSignal.User.PushSubscription.id;
     if (playerId && miUid && codigoPareja) {
+      // Guardar el playerId en Firestore para que la pareja pueda mandarnos notis
       await setDoc(doc(db, "usuarios", miUid), { oneSignalId: playerId }, { merge: true });
     }
   } catch (e) {
@@ -103,50 +103,27 @@ async function notificarPareja(tipo) {
     const oneSignalId = parejaUserSnap.data()?.oneSignalId;
     if (!oneSignalId) return;
 
-    await fetch("https://daily-love-server.onrender.com/notificar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        oneSignalId,
-        tipo,
-        nombreUsuario: document.getElementById("userName").textContent
-      })
-    });
+    const mensajesNoti = {
+      mensaje: "Te enviaron un mensaje 💬",
+      foto:    "Te compartieron una foto 📸",
+      cancion: "Te dedicaron una canción 🎵",
+      frase:   "Te dejaron una frase 💭"
+    };
+
+   await fetch("https://daily-love-server.onrender.com/notificar", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    oneSignalId,
+    tipo,
+    nombreUsuario: document.getElementById("userName").textContent
+  })
+});
   } catch (e) {
     console.error("Error mandando notificación:", e);
   }
 }
 
-// ===== TOAST IN-APP PARA CONTENIDO NUEVO DE LA PAREJA =====
-const mensajesInApp = {
-  mensaje: "💬 Nuevo mensaje",
-  foto:    "📸 Nueva foto",
-  cancion: "🎵 Nueva canción",
-  frase:   "💭 Nueva frase"
-};
-
-// Apodo guardado de la pareja (se carga al iniciar sesión)
-let apodoDePareja = "";
-
-async function cargarApodoPareja() {
-  if (!miUid) return;
-  try {
-    const snap = await getDoc(doc(db, "usuarios", miUid));
-    if (snap.exists()) apodoDePareja = snap.data().apodoPareja || "";
-  } catch { apodoDePareja = ""; }
-}
-
-function nombreRemitente(nombreUsuarioPareja) {
-  return apodoDePareja || nombreUsuarioPareja || "Tu pareja";
-}
-
-async function mostrarToastInApp(tipo, nombreUsuarioPareja) {
-  // Si no tenemos el apodo cargado, lo pedimos primero
-  if (!apodoDePareja) await cargarApodoPareja();
-  const quien = nombreRemitente(nombreUsuarioPareja);
-  const accion = mensajesInApp[tipo] || "algo nuevo 💕";
-  mostrarToast(`${quien}: ${accion}`, "info");
-}
 
 // ===== SESIÓN PERSISTENTE =====
 setPersistence(auth, browserLocalPersistence).then(() => {
@@ -165,37 +142,44 @@ setPersistence(auth, browserLocalPersistence).then(() => {
         miGenero     = datos.genero;
         codigoPareja = datos.codigo;
 
-        const userNameEl     = document.getElementById("userName");
+        // ===== NOMBRE =====
+        const userNameEl = document.getElementById("userName");
         const userNameMainEl = document.getElementById("userNameMain");
 
-        if (userNameEl)     userNameEl.textContent     = datos.usuario;
+        if (userNameEl) userNameEl.textContent = datos.usuario;
         if (userNameMainEl) userNameMainEl.textContent = datos.usuario;
 
+        // ===== FOTO HEADER =====
         if (fotoPerfilHeader) {
-          fotoPerfilHeader.src = datos.foto
-            ? datos.foto
-            : `https://ui-avatars.com/api/?name=${datos.usuario}&background=EC4899&color=fff`;
+          if (datos.foto) {
+            fotoPerfilHeader.src = datos.foto;
+          } else {
+            fotoPerfilHeader.src = `https://ui-avatars.com/api/?name=${datos.usuario}&background=EC4899&color=fff`;
+          }
         }
 
+        // ===== PERFIL (REDIRECCIÓN) =====
         if (btnPerfil && !btnPerfil.dataset.listener) {
-          btnPerfil.onclick = () => { window.location.href = "perfil.html"; };
+          btnPerfil.onclick = () => {
+            window.location.href = "perfil.html";
+          };
+
           btnPerfil.dataset.listener = "true";
         }
 
-        if (!sessionStorage.getItem("bienvenidaMostrada")) {
-          mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
-          sessionStorage.setItem("bienvenidaMostrada", "1");
-        }
+        mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
       }
 
-      await cargarApodoPareja();
       iniciarTiempoReal();
 
+      // ===== ONESIGNAL =====
       if (typeof OneSignal !== "undefined") {
         await iniciarOneSignal();
       } else {
         window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(async () => { await iniciarOneSignal(); });
+        window.OneSignalDeferred.push(async () => {
+          await iniciarOneSignal();
+        });
       }
 
     } catch (error) {
@@ -210,7 +194,6 @@ btnCerrarSesion.onclick = async () => {
   if (miUid) {
     await setDoc(doc(db, "usuarios", miUid), { oneSignalId: null }, { merge: true });
   }
-  sessionStorage.removeItem("bienvenidaMostrada");
   await signOut(auth);
   window.location.href = "registro.html";
 };
@@ -560,9 +543,7 @@ function rerenderSeccion(tipo) {
 function iniciarTiempoReal() {
   if (!codigoPareja) return;
   if (unsubscribe) unsubscribe();
-
   const ref = collection(db, "parejas", codigoPareja, "contenido");
-
   unsubscribe = onSnapshot(ref, (snapshot) => {
     const datos = [];
     snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
@@ -571,29 +552,6 @@ function iniciarTiempoReal() {
       const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
       return fb - fa;
     });
-
-    // ===== DETECCIÓN DE CONTENIDO NUEVO IN-APP =====
-    if (idsConocidos === null) {
-      // Primera carga: registrar todos los IDs existentes sin mostrar toast
-      idsConocidos = new Set(datos.map(d => d.id));
-    } else {
-      // Cargas posteriores: detectar IDs nuevos que no son míos
-      for (const d of datos) {
-        if (!idsConocidos.has(d.id) && d.autorUid !== miUid) {
-          // Recargar apodo por si acaba de cambiar
-          await cargarApodoPareja();
-          // Obtener nombre de la pareja para el toast
-          let nombrePareja = "";
-          try {
-            const parejaSnap = await getDoc(doc(db, "usuarios", d.autorUid));
-            if (parejaSnap.exists()) nombrePareja = parejaSnap.data().usuario || "";
-          } catch { /* silencioso */ }
-          await mostrarToastInApp(d.tipo, nombrePareja);
-        }
-        idsConocidos.add(d.id);
-      }
-    }
-
     datosGlobal = datos;
     renderTodo(datos);
   });
