@@ -119,15 +119,33 @@ async function notificarPareja(tipo) {
 
 // ===== TOAST IN-APP PARA CONTENIDO NUEVO DE LA PAREJA =====
 const mensajesInApp = {
-  mensaje: "Recibiste un mensaje nuevo 💬",
-  foto:    "Recibiste una foto nueva 📸",
-  cancion: "Recibiste una canción nueva 🎵",
-  frase:   "Recibiste una frase nueva 💭"
+  mensaje: "💬 Nuevo mensaje",
+  foto:    "📸 Nueva foto",
+  cancion: "🎵 Nueva canción",
+  frase:   "💭 Nueva frase"
 };
 
-function mostrarToastInApp(tipo) {
-  const texto = mensajesInApp[tipo] || "Tu pareja compartió algo nuevo 💕";
-  mostrarToast(texto, "info");
+// Apodo guardado de la pareja (se carga al iniciar sesión)
+let apodoDePareja = "";
+
+async function cargarApodoPareja() {
+  if (!miUid) return;
+  try {
+    const snap = await getDoc(doc(db, "usuarios", miUid));
+    if (snap.exists()) apodoDePareja = snap.data().apodoPareja || "";
+  } catch { apodoDePareja = ""; }
+}
+
+function nombreRemitente(nombreUsuarioPareja) {
+  return apodoDePareja || nombreUsuarioPareja || "Tu pareja";
+}
+
+async function mostrarToastInApp(tipo, nombreUsuarioPareja) {
+  // Si no tenemos el apodo cargado, lo pedimos primero
+  if (!apodoDePareja) await cargarApodoPareja();
+  const quien = nombreRemitente(nombreUsuarioPareja);
+  const accion = mensajesInApp[tipo] || "algo nuevo 💕";
+  mostrarToast(`${quien}: ${accion}`, "info");
 }
 
 // ===== SESIÓN PERSISTENTE =====
@@ -164,9 +182,13 @@ setPersistence(auth, browserLocalPersistence).then(() => {
           btnPerfil.dataset.listener = "true";
         }
 
-        mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
+        if (!sessionStorage.getItem("bienvenidaMostrada")) {
+          mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
+          sessionStorage.setItem("bienvenidaMostrada", "1");
+        }
       }
 
+      await cargarApodoPareja();
       iniciarTiempoReal();
 
       if (typeof OneSignal !== "undefined") {
@@ -188,6 +210,7 @@ btnCerrarSesion.onclick = async () => {
   if (miUid) {
     await setDoc(doc(db, "usuarios", miUid), { oneSignalId: null }, { merge: true });
   }
+  sessionStorage.removeItem("bienvenidaMostrada");
   await signOut(auth);
   window.location.href = "registro.html";
 };
@@ -555,12 +578,20 @@ function iniciarTiempoReal() {
       idsConocidos = new Set(datos.map(d => d.id));
     } else {
       // Cargas posteriores: detectar IDs nuevos que no son míos
-      datos.forEach(d => {
+      for (const d of datos) {
         if (!idsConocidos.has(d.id) && d.autorUid !== miUid) {
-          mostrarToastInApp(d.tipo);
+          // Recargar apodo por si acaba de cambiar
+          await cargarApodoPareja();
+          // Obtener nombre de la pareja para el toast
+          let nombrePareja = "";
+          try {
+            const parejaSnap = await getDoc(doc(db, "usuarios", d.autorUid));
+            if (parejaSnap.exists()) nombrePareja = parejaSnap.data().usuario || "";
+          } catch { /* silencioso */ }
+          await mostrarToastInApp(d.tipo, nombrePareja);
         }
-        idsConocidos.add(d.id); // registrar siempre para no repetir
-      });
+        idsConocidos.add(d.id);
+      }
     }
 
     datosGlobal = datos;
