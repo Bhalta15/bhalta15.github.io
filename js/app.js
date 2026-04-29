@@ -103,7 +103,12 @@ async function notificarPareja(tipo, contenidoRaw = "") {
     const oneSignalId = parejaUserSnap.data()?.oneSignalId;
     if (!oneSignalId) return;
 
-    // Extraer preview de texto segun tipo
+    // ← El apodo que MI PAREJA me puso a mí (lo que ella ve en sus notis)
+    const apodoQueEllaTieneParaMi = parejaUserSnap.data()?.apodoPareja || "";
+    const miNombre = document.getElementById("userName").textContent;
+    const nombreEnNoti = apodoQueEllaTieneParaMi || miNombre;
+
+    // Preview de texto según tipo
     let preview = "";
     if (tipo === "mensaje" || tipo === "frase") {
       preview = contenidoRaw.length > 50
@@ -114,9 +119,8 @@ async function notificarPareja(tipo, contenidoRaw = "") {
         const parsed = JSON.parse(contenidoRaw);
         const desc = parsed.desc || "";
         preview = desc.length > 50 ? desc.substring(0, 50) + "..." : desc;
-      } catch (_e) { preview = ""; }
+      } catch { preview = ""; }
     }
-    // foto: preview vacio, server usa solo mensaje base
 
     await fetch("https://daily-love-server.onrender.com/notificar", {
       method: "POST",
@@ -124,7 +128,7 @@ async function notificarPareja(tipo, contenidoRaw = "") {
       body: JSON.stringify({
         oneSignalId,
         tipo,
-        nombreUsuario: document.getElementById("userName").textContent,
+        nombreUsuario: nombreEnNoti,  // ← apodo o nombre real
         preview
       })
     });
@@ -135,10 +139,10 @@ async function notificarPareja(tipo, contenidoRaw = "") {
 
 // ===== TOAST IN-APP PARA CONTENIDO NUEVO DE LA PAREJA =====
 const mensajesInApp = {
-  mensaje: "💬 Nuevo mensaje",
-  foto:    "📸 Nueva foto",
-  cancion: "🎵 Nueva canción",
-  frase:   "💭 Nueva frase"
+  mensaje: "Nuevo mensaje💬",
+  foto:    "Nueva foto📸",
+  cancion: "Nueva canción🎵",
+  frase:   "Nueva frase💭"
 };
 
 // Apodo guardado de la pareja (se carga al iniciar sesión)
@@ -149,7 +153,7 @@ async function cargarApodoPareja() {
   try {
     const snap = await getDoc(doc(db, "usuarios", miUid));
     if (snap.exists()) apodoDePareja = snap.data().apodoPareja || "";
-  } catch (_e) { apodoDePareja = ""; }
+  } catch { apodoDePareja = ""; }
 }
 
 function nombreRemitente(nombreUsuarioPareja) {
@@ -219,17 +223,6 @@ setPersistence(auth, browserLocalPersistence).then(() => {
     }
   });
 });
-
-// ===== CERRAR SESIÓN =====
-btnCerrarSesion.onclick = async () => {
-  if (unsubscribe) unsubscribe();
-  if (miUid) {
-    await setDoc(doc(db, "usuarios", miUid), { oneSignalId: null }, { merge: true });
-  }
-  sessionStorage.removeItem("bienvenidaMostrada");
-  await signOut(auth);
-  window.location.href = "registro.html";
-};
 
 // ===== MENÚ =====
 menuBtn.onclick = () => {
@@ -407,7 +400,7 @@ function abrirModalEditar(d) {
       const parsed = JSON.parse(d.contenido);
       editDescCancion.value = parsed.desc || "";
       editLinkCancion.value = parsed.link || "";
-    } catch (_e) {
+    } catch {
       editLinkCancion.value = d.contenido;
     }
   } else if (d.tipo === "foto") {
@@ -577,7 +570,7 @@ function iniciarTiempoReal() {
 
   const ref = collection(db, "parejas", codigoPareja, "contenido");
 
-  unsubscribe = onSnapshot(ref, async (snapshot) => {
+  unsubscribe = onSnapshot(ref, (snapshot) => {
     const datos = [];
     snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
     datos.sort((a, b) => {
@@ -601,7 +594,7 @@ function iniciarTiempoReal() {
           try {
             const parejaSnap = await getDoc(doc(db, "usuarios", d.autorUid));
             if (parejaSnap.exists()) nombrePareja = parejaSnap.data().usuario || "";
-          } catch (_e) { /* silencioso */ }
+          } catch { /* silencioso */ }
           await mostrarToastInApp(d.tipo, nombrePareja);
         }
         idsConocidos.add(d.id);
@@ -717,7 +710,7 @@ function crearCardHTML(d, enModoEliminar) {
     try {
       const parsed = JSON.parse(d.contenido);
       desc = parsed.desc; link = parsed.link;
-    } catch (_e) { link = d.contenido; }
+    } catch { link = d.contenido; }
 
     return `
       <div data-id="${d.id}"
