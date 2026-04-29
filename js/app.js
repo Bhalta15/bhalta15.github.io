@@ -23,10 +23,25 @@ let gruposAbiertos = {};
 let datosGlobal    = [];
 
 // IDs ya conocidos al cargar — para detectar solo los NUEVOS
-let idsConocidos = null; // null = todavía no inicializado
+let idsConocidos = null;
 
 const modoEliminar  = { mensaje: false, foto: false, cancion: false, frase: false };
 const seleccionados = { mensaje: new Set(), foto: new Set(), cancion: new Set(), frase: new Set() };
+
+// ===== CORAZONES MENÚ =====
+const seccionesConNuevo = { mensaje: false, foto: false, cancion: false, frase: false };
+
+function mostrarCorazon(tipo) {
+  seccionesConNuevo[tipo] = true;
+  const el = document.getElementById(`heart-${tipo}`);
+  if (el) el.classList.remove('hidden');
+}
+
+function quitarCorazon(tipo) {
+  seccionesConNuevo[tipo] = false;
+  const el = document.getElementById(`heart-${tipo}`);
+  if (el) el.classList.add('hidden');
+}
 
 // ===== ELEMENTOS =====
 const menuBtn           = document.getElementById('menuBtn');
@@ -103,12 +118,10 @@ async function notificarPareja(tipo, contenidoRaw = "") {
     const oneSignalId = parejaUserSnap.data()?.oneSignalId;
     if (!oneSignalId) return;
 
-    // ← El apodo que MI PAREJA me puso a mí (lo que ella ve en sus notis)
     const apodoQueEllaTieneParaMi = parejaUserSnap.data()?.apodoPareja || "";
     const miNombre = document.getElementById("userName").textContent;
     const nombreEnNoti = apodoQueEllaTieneParaMi || miNombre;
 
-    // Preview de texto según tipo
     let preview = "";
     if (tipo === "mensaje" || tipo === "frase") {
       preview = contenidoRaw.length > 50
@@ -128,7 +141,7 @@ async function notificarPareja(tipo, contenidoRaw = "") {
       body: JSON.stringify({
         oneSignalId,
         tipo,
-        nombreUsuario: nombreEnNoti,  // ← apodo o nombre real
+        nombreUsuario: nombreEnNoti,
         preview
       })
     });
@@ -145,7 +158,6 @@ const mensajesInApp = {
   frase:   "Nueva frase💭"
 };
 
-// Apodo guardado de la pareja (se carga al iniciar sesión)
 let apodoDePareja = "";
 
 async function cargarApodoPareja() {
@@ -161,7 +173,6 @@ function nombreRemitente(nombreUsuarioPareja) {
 }
 
 async function mostrarToastInApp(tipo, nombreUsuarioPareja) {
-  // Si no tenemos el apodo cargado, lo pedimos primero
   if (!apodoDePareja) await cargarApodoPareja();
   const quien = nombreRemitente(nombreUsuarioPareja);
   const accion = mensajesInApp[tipo] || "algo nuevo 💕";
@@ -185,6 +196,11 @@ setPersistence(auth, browserLocalPersistence).then(() => {
         miGenero     = datos.genero;
         codigoPareja = datos.codigo;
 
+        if (!codigoPareja) {
+          window.location.href = "registro.html";
+          return;
+        }
+
         const userNameEl     = document.getElementById("userName");
         const userNameMainEl = document.getElementById("userNameMain");
 
@@ -206,16 +222,19 @@ setPersistence(auth, browserLocalPersistence).then(() => {
           mostrarToast(`¡Bienvenido ${datos.usuario}!`, "info");
           sessionStorage.setItem("bienvenidaMostrada", "1");
         }
-      }
 
-      await cargarApodoPareja();
-      iniciarTiempoReal();
+        await cargarApodoPareja();
+        iniciarTiempoReal();
 
-      if (typeof OneSignal !== "undefined") {
-        await iniciarOneSignal();
+        if (typeof OneSignal !== "undefined") {
+          await iniciarOneSignal();
+        } else {
+          window.OneSignalDeferred = window.OneSignalDeferred || [];
+          window.OneSignalDeferred.push(async () => { await iniciarOneSignal(); });
+        }
+
       } else {
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(async () => { await iniciarOneSignal(); });
+        window.location.href = "registro.html";
       }
 
     } catch (error) {
@@ -239,7 +258,13 @@ function cerrarMenu() {
 document.querySelectorAll('.itemMenu').forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-    document.getElementById(btn.dataset.section).classList.remove('hidden');
+    const seccion = btn.dataset.section;
+    document.getElementById(seccion).classList.remove('hidden');
+
+    // Quitar corazón si esa sección tiene uno
+    const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase' };
+    if (tipoMap[seccion]) quitarCorazon(tipoMap[seccion]);
+
     cerrarMenu();
   };
 });
@@ -570,7 +595,7 @@ function iniciarTiempoReal() {
 
   const ref = collection(db, "parejas", codigoPareja, "contenido");
 
-  unsubscribe = onSnapshot(ref, async (snapshot) => { 
+  unsubscribe = onSnapshot(ref, async (snapshot) => {
     const datos = [];
     snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
     datos.sort((a, b) => {
@@ -579,23 +604,19 @@ function iniciarTiempoReal() {
       return fb - fa;
     });
 
-    // ===== DETECCIÓN DE CONTENIDO NUEVO IN-APP =====
     if (idsConocidos === null) {
-      // Primera carga: registrar todos los IDs existentes sin mostrar toast
       idsConocidos = new Set(datos.map(d => d.id));
     } else {
-      // Cargas posteriores: detectar IDs nuevos que no son míos
       for (const d of datos) {
         if (!idsConocidos.has(d.id) && d.autorUid !== miUid) {
-          // Recargar apodo por si acaba de cambiar
-          await cargarApodoPareja(); //LINEA 591
-          // Obtener nombre de la pareja para el toast
+          await cargarApodoPareja();
           let nombrePareja = "";
           try {
             const parejaSnap = await getDoc(doc(db, "usuarios", d.autorUid));
             if (parejaSnap.exists()) nombrePareja = parejaSnap.data().usuario || "";
           } catch { /* silencioso */ }
           await mostrarToastInApp(d.tipo, nombrePareja);
+          mostrarCorazon(d.tipo); // ← corazón en el menú
         }
         idsConocidos.add(d.id);
       }
