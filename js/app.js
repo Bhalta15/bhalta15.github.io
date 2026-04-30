@@ -167,9 +167,14 @@ async function mostrarToastInApp(tipo, nombreUsuarioPareja) {
 }
 
 // ===== SESIÓN PERSISTENTE =====
+mostrarLoader();
+let sesionInicializada = false;
+
 setPersistence(auth, browserLocalPersistence).then(() => {
   onAuthStateChanged(auth, async (user) => {
-    mostrarLoader();
+    if (sesionInicializada) return; // evitar que se dispare más de una vez
+    sesionInicializada = true;
+
     if (!user) {
       ocultarLoader();
       window.location.href = "registro.html";
@@ -220,6 +225,7 @@ setPersistence(auth, browserLocalPersistence).then(() => {
       }
 
     } catch (error) {
+      ocultarLoader();
       console.error("Error cargando usuario:", error);
     }
   });
