@@ -1056,6 +1056,7 @@ guardarPlan.onclick = async () => {
         texto,
         fechaPlan,
         tab: tabPlanActual,
+        tabOrigen: tabPlanActual,
         fecha: new Date(),
         autorUid: miUid
       });
@@ -1069,14 +1070,29 @@ guardarPlan.onclick = async () => {
 };
 
 // Marcar plan como completado (mueve al tab "hecho" y guarda la fecha de hoy)
-window.marcarCompletado = async (id) => {
+window.marcarCompletado = async (id, tabOrigen) => {
   try {
     const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
     await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', id), {
       tab: 'hecho',
+      tabOrigen: tabOrigen,
       fechaPlan: hoy
     });
     mostrarToast('¡Completado! 🎉', 'exito');
+  } catch (e) {
+    mostrarToast('Error', 'error');
+    console.error(e);
+  }
+};
+
+// Desmarcar completado (regresa al tab de origen)
+window.desmarcarCompletado = async (id, tabOrigen) => {
+  try {
+    await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', id), {
+      tab: tabOrigen,
+      fechaPlan: ''
+    });
+    mostrarToast('Movido de vuelta 💜', 'exito');
   } catch (e) {
     mostrarToast('Error', 'error');
     console.error(e);
@@ -1155,17 +1171,24 @@ function _renderPlanesHTML() {
         </button>
       </div>` : '';
 
-    // Botón ✓ para marcar completado (solo en Citas y Pendientes, fuera de modo editar)
-    const btnCompletar = (!esHecho && !modoEditarPlanes) ? `
-      <button onclick="marcarCompletado('${d.id}')"
-        title="Marcar como completado"
-        class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 flex items-center justify-center text-purple-400 hover:bg-purple-100 hover:border-purple-500 transition text-sm font-bold">
-        ✓
-      </button>` : '';
+    // Botón ✓ para marcar/desmarcar completado (fuera de modo editar)
+    const btnCompletar = !modoEditarPlanes ? (
+      !esHecho
+        ? `<button onclick="marcarCompletado('${d.id}', '${d.tabOrigen || tabPlanActual}')"
+            title="Marcar como completado"
+            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 flex items-center justify-center text-purple-400 hover:bg-purple-100 hover:border-purple-500 transition text-sm font-bold">
+            ✓
+          </button>`
+        : `<button onclick="desmarcarCompletado('${d.id}', '${d.tabOrigen || 'pendiente'}')"
+            title="Desmarcar"
+            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-400 bg-purple-100 flex items-center justify-center text-purple-600 hover:bg-purple-200 transition text-sm font-bold">
+            ✓
+          </button>`
+    ) : '';
 
     return `
-      <div class="bg-white shadow rounded-xl p-4 border-2 border-purple-200 relative ${esHecho ? 'opacity-60' : ''}">
-        <p class="text-gray-700 ${esHecho ? 'line-through' : ''} break-words pr-10">${d.texto}</p>
+      <div class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative ${esHecho ? 'opacity-60' : ''}">
+        <p class="text-gray-700 break-words pr-10">${d.texto}</p>
         ${fechaLinea}
         ${btnCompletar}
         ${botonesEditar}
