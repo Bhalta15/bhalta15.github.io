@@ -29,7 +29,7 @@ const modoEliminar  = { mensaje: false, foto: false, cancion: false, frase: fals
 const seleccionados = { mensaje: new Set(), foto: new Set(), cancion: new Set(), frase: new Set() };
 
 // ===== CORAZONES MENÚ =====
-const seccionesConNuevo = { mensaje: false, foto: false, cancion: false, frase: false };
+const seccionesConNuevo = { mensaje: false, foto: false, cancion: false, frase: false, plan: false };
 
 function mostrarCorazon(tipo) {
   seccionesConNuevo[tipo] = true;
@@ -46,7 +46,7 @@ function quitarCorazon(tipo) {
 }
 
 function cargarCorazonesGuardados() {
-  ['mensaje', 'foto', 'cancion', 'frase'].forEach(tipo => {
+  ['mensaje', 'foto', 'cancion', 'frase', 'plan'].forEach(tipo => {
     if (localStorage.getItem(`heart-${tipo}`) === 'true') {
       mostrarCorazon(tipo);
     }
@@ -273,8 +273,13 @@ document.querySelectorAll('.itemMenu').forEach(btn => {
     document.getElementById(seccion).classList.remove('hidden');
     seccionActiva = seccion; // ← actualizar sección activa
 
-    const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase' };
+    const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase', planes: 'plan' };
     if (tipoMap[seccion]) quitarCorazon(tipoMap[seccion]);
+
+    // Iniciar listener de planes la primera vez que se entra
+    if (seccion === 'planes') {
+      renderPlanes();
+    }
 
     cerrarMenu();
   };
@@ -934,4 +939,236 @@ function renderTodo(datos) {
     renderPorFecha(tipo, datos.filter(d => d.tipo === tipo));
   });
   renderInicio(datos);
+}
+
+// ===== PLANES =====
+let tabPlanActual    = "cita";
+let modoEditarPlanes = false;
+let planEditandoId   = null;
+
+const modalPlan       = document.getElementById('modalPlan');
+const modalPlanTitulo = document.getElementById('modalPlanTitulo');
+const inputPlanTexto  = document.getElementById('inputPlanTexto');
+const inputPlanFecha  = document.getElementById('inputPlanFecha');
+const labelPlanFecha  = document.getElementById('labelPlanFecha');
+const cancelarPlan    = document.getElementById('cancelarPlan');
+const guardarPlan     = document.getElementById('guardarPlan');
+
+// Tabs de planes
+document.querySelectorAll('.tabPlan').forEach(btn => {
+  btn.onclick = () => {
+    tabPlanActual = btn.dataset.tab;
+    document.querySelectorAll('.tabPlan').forEach(t => {
+      t.classList.remove('text-purple-600', 'border-purple-500');
+      t.classList.add('text-gray-400', 'border-transparent');
+    });
+    btn.classList.remove('text-gray-400', 'border-transparent');
+    btn.classList.add('text-purple-600', 'border-purple-500');
+    _renderPlanesHTML();
+  };
+});
+
+// Modo editar planes (activa/desactiva botones de editar y eliminar en cada card)
+window.activarModoEditarPlanes = () => {
+  modoEditarPlanes = !modoEditarPlanes;
+  const btn = document.getElementById('btnEditarPlan');
+  if (modoEditarPlanes) {
+    btn.classList.remove('bg-purple-100', 'text-purple-600');
+    btn.classList.add('bg-purple-500', 'text-white');
+    btn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+      Listo`;
+  } else {
+    btn.classList.add('bg-purple-100', 'text-purple-600');
+    btn.classList.remove('bg-purple-500', 'text-white');
+    btn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+      Editar`;
+  }
+  _renderPlanesHTML();
+};
+
+// Abrir modal nuevo o editar plan
+window.abrirModalPlan = (d = null) => {
+  planEditandoId = d ? d.id : null;
+  modalPlanTitulo.textContent = d ? 'Editar plan' : 'Nuevo plan';
+  inputPlanTexto.value = d ? d.texto : '';
+  guardarPlan.textContent = d ? 'Guardar' : 'Enviar';
+
+  const tab = d ? d.tab : tabPlanActual;
+
+  if (tab === 'cita') {
+    labelPlanFecha.textContent = 'Fecha de la cita (opcional)';
+    inputPlanFecha.type = 'date';
+    inputPlanFecha.placeholder = '';
+  } else if (tab === 'pendiente') {
+    labelPlanFecha.textContent = 'Fecha límite (opcional)';
+    inputPlanFecha.type = 'text';
+    inputPlanFecha.placeholder = 'ej: este sábado, antes de junio...';
+  } else {
+    labelPlanFecha.textContent = '¿Cuándo lo hicieron? (opcional)';
+    inputPlanFecha.type = 'text';
+    inputPlanFecha.placeholder = 'ej: 1 mayo 2026';
+  }
+
+  inputPlanFecha.value = d?.fechaPlan || '';
+
+  modalPlan.classList.remove('hidden');
+  modalPlan.classList.add('flex');
+  setTimeout(() => {
+    modalPlan.classList.remove('opacity-0');
+    modalPlan.classList.add('opacity-100');
+  }, 10);
+};
+
+function cerrarModalPlan() {
+  modalPlan.classList.remove('opacity-100');
+  modalPlan.classList.add('opacity-0');
+  setTimeout(() => {
+    modalPlan.classList.add('hidden');
+    modalPlan.classList.remove('flex');
+  }, 300);
+}
+cancelarPlan.onclick = cerrarModalPlan;
+
+guardarPlan.onclick = async () => {
+  const texto = inputPlanTexto.value.trim();
+  if (!texto) return mostrarToast('Escribe algo primero', 'error');
+  const fechaPlan = inputPlanFecha.value.trim();
+
+  if (planEditandoId) {
+    try {
+      await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', planEditandoId), { texto, fechaPlan });
+      mostrarToast('¡Editado!', 'exito');
+      cerrarModalPlan();
+    } catch (e) {
+      mostrarToast('Error al editar', 'error');
+      console.error(e);
+    }
+  } else {
+    try {
+      await addDoc(collection(db, 'parejas', codigoPareja, 'planes'), {
+        texto,
+        fechaPlan,
+        tab: tabPlanActual,
+        fecha: new Date(),
+        autorUid: miUid
+      });
+      mostrarToast('¡Guardado!', 'exito');
+      cerrarModalPlan();
+    } catch (e) {
+      mostrarToast('Error al guardar', 'error');
+      console.error(e);
+    }
+  }
+};
+
+// Marcar plan como completado (mueve al tab "hecho" y guarda la fecha de hoy)
+window.marcarCompletado = async (id) => {
+  try {
+    const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', id), {
+      tab: 'hecho',
+      fechaPlan: hoy
+    });
+    mostrarToast('¡Completado! 🎉', 'exito');
+  } catch (e) {
+    mostrarToast('Error', 'error');
+    console.error(e);
+  }
+};
+
+// Eliminar plan
+window.eliminarPlan = async (id) => {
+  if (!confirm('¿Eliminar este plan?')) return;
+  try {
+    await deleteDoc(doc(db, 'parejas', codigoPareja, 'planes', id));
+    mostrarToast('¡Eliminado!', 'exito');
+  } catch (e) {
+    mostrarToast('Error al eliminar', 'error');
+    console.error(e);
+  }
+};
+
+// Iniciar listener en tiempo real para planes
+function renderPlanes() {
+  if (renderPlanes._unsub) {
+    _renderPlanesHTML();
+    return;
+  }
+  const ref = collection(db, 'parejas', codigoPareja, 'planes');
+  renderPlanes._unsub = onSnapshot(ref, snap => {
+    renderPlanes._datos = [];
+    snap.forEach(d => renderPlanes._datos.push({ id: d.id, ...d.data() }));
+    renderPlanes._datos.sort((a, b) => {
+      const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha || 0);
+      const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha || 0);
+      return fb - fa;
+    });
+    _renderPlanesHTML();
+  });
+}
+
+function _renderPlanesHTML() {
+  const cont = document.getElementById('planesContainer');
+  if (!cont) return;
+  const datos = (renderPlanes._datos || []).filter(d => d.tab === tabPlanActual);
+
+  if (datos.length === 0) {
+    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">Aún no hay nada aquí 💜</p>`;
+    return;
+  }
+
+  cont.innerHTML = datos.map(d => {
+    const esHecho = d.tab === 'hecho';
+
+    // Línea de fecha según tab
+    let fechaLinea = '';
+    if (d.tab === 'cita' && d.fechaPlan) {
+      let fechaTexto = d.fechaPlan;
+      try {
+        const [y, m, day] = d.fechaPlan.split('-');
+        const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(day));
+        fechaTexto = dt.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+      } catch {}
+      fechaLinea = `<p class="text-xs text-purple-400 mt-1">📅 ${fechaTexto}</p>`;
+    } else if (d.fechaPlan) {
+      const icono = esHecho ? '✓' : '⏳';
+      fechaLinea = `<p class="text-xs text-purple-400 mt-1">${icono} ${d.fechaPlan}</p>`;
+    }
+
+    // Botones editar/eliminar (solo en modo editar)
+    const botonesEditar = modoEditarPlanes ? `
+      <div class="flex gap-2 mt-3 justify-end">
+        <button onclick='abrirModalPlan(${JSON.stringify(d).replace(/'/g, "&#39;")})'
+          class="text-xs px-3 py-1.5 rounded bg-purple-100 text-purple-600 hover:bg-purple-200 transition">
+          Editar
+        </button>
+        <button onclick="eliminarPlan('${d.id}')"
+          class="text-xs px-3 py-1.5 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">
+          Eliminar
+        </button>
+      </div>` : '';
+
+    // Botón ✓ para marcar completado (solo en Citas y Pendientes, fuera de modo editar)
+    const btnCompletar = (!esHecho && !modoEditarPlanes) ? `
+      <button onclick="marcarCompletado('${d.id}')"
+        title="Marcar como completado"
+        class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 flex items-center justify-center text-purple-400 hover:bg-purple-100 hover:border-purple-500 transition text-sm font-bold">
+        ✓
+      </button>` : '';
+
+    return `
+      <div class="bg-white shadow rounded-xl p-4 border-2 border-purple-200 relative ${esHecho ? 'opacity-60' : ''}">
+        <p class="text-gray-700 ${esHecho ? 'line-through' : ''} break-words pr-10">${d.texto}</p>
+        ${fechaLinea}
+        ${btnCompletar}
+        ${botonesEditar}
+      </div>`;
+  }).join('');
 }
