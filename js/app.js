@@ -807,6 +807,18 @@ function renderPorFecha(tipo, datos) {
     grupos[grupo].push(d);
   });
 
+  // ===== ESTADO VACÍO PERSONALIZADO =====
+  if (Object.keys(grupos).length === 0) {
+    const vacios = {
+      mensaje: "Aún no hay mensajes... ¡manda el primero! 💬",
+      foto:    "Aún no hay fotos... ¡sube un recuerdo! 📸",
+      cancion: "Aún no hay canciones... ¿cuál es la de ustedes? 🎵",
+      frase:   "Aún no hay frases... ¡exprésate! 💭"
+    };
+    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">${vacios[tipo]}</p>`;
+    return;
+  }
+
   let html = "";
   Object.keys(grupos).forEach((grupo, index) => {
     const id              = `grupo-${tipo}-${index}`;
@@ -1197,7 +1209,12 @@ function _renderPlanesHTML() {
   const datos = (renderPlanes._datos || []).filter(d => d.tab === tabPlanActual);
 
   if (datos.length === 0) {
-    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">Aún no hay nada aquí 💜</p>`;
+    // ===== ESTADO VACÍO PERSONALIZADO PARA PLANES =====
+    const vaciosPlan = {
+      cita: "Aún no hay citas planeadas... ¡propón una! 🗓️",
+      plan: "Aún no hay planes... ¡qué se les ocurre! 💡"
+    };
+    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">${vaciosPlan[tabPlanActual]}</p>`;
     return;
   }
 
