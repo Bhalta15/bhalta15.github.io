@@ -276,6 +276,9 @@ document.querySelectorAll('.itemMenu').forEach(btn => {
     const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase', planes: 'plan' };
     if (tipoMap[seccion]) quitarCorazon(tipoMap[seccion]);
 
+    // Si salimos de planes, cancelar modo editar
+    if (seccion !== 'planes') resetearModoEditarPlanes();
+
     // Iniciar listener de planes la primera vez que se entra
     if (seccion === 'planes') {
       renderPlanes();
@@ -954,6 +957,24 @@ const labelPlanFecha  = document.getElementById('labelPlanFecha');
 const cancelarPlan    = document.getElementById('cancelarPlan');
 const guardarPlan     = document.getElementById('guardarPlan');
 
+// Función para resetear el modo editar (usada al cambiar de sección)
+function resetearModoEditarPlanes() {
+  if (!modoEditarPlanes) return;
+  modoEditarPlanes = false;
+  const btn = document.getElementById('btnEditarPlan');
+  if (!btn) return;
+  btn.classList.add('bg-purple-100', 'text-purple-600');
+  btn.classList.remove('bg-purple-500', 'text-white');
+  btn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>`;
+  // Mostrar botón Nuevo de nuevo
+  const btnNuevo = document.getElementById('btnNuevoPlan');
+  if (btnNuevo) btnNuevo.classList.remove('hidden');
+}
+
 // Tabs de planes
 document.querySelectorAll('.tabPlan').forEach(btn => {
   btn.onclick = () => {
@@ -968,18 +989,19 @@ document.querySelectorAll('.tabPlan').forEach(btn => {
   };
 });
 
-// Modo editar planes (activa/desactiva botones de editar y eliminar en cada card)
+// Modo editar planes — toca card para editar, oculta botón Nuevo
 window.activarModoEditarPlanes = () => {
   modoEditarPlanes = !modoEditarPlanes;
   const btn = document.getElementById('btnEditarPlan');
+  const btnNuevo = document.getElementById('btnNuevoPlan');
   if (modoEditarPlanes) {
     btn.classList.remove('bg-purple-100', 'text-purple-600');
     btn.classList.add('bg-purple-500', 'text-white');
     btn.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-      </svg>
-      Listo`;
+      </svg>`;
+    if (btnNuevo) btnNuevo.classList.add('hidden');
   } else {
     btn.classList.add('bg-purple-100', 'text-purple-600');
     btn.classList.remove('bg-purple-500', 'text-white');
@@ -987,8 +1009,8 @@ window.activarModoEditarPlanes = () => {
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
         <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>
-      Editar`;
+      </svg>`;
+    if (btnNuevo) btnNuevo.classList.remove('hidden');
   }
   _renderPlanesHTML();
 };
@@ -998,7 +1020,7 @@ window.abrirModalPlan = (d = null) => {
   planEditandoId = d ? d.id : null;
   modalPlanTitulo.textContent = d ? 'Editar plan' : 'Nuevo plan';
   inputPlanTexto.value = d ? d.texto : '';
-  guardarPlan.textContent = d ? 'Guardar' : 'Enviar';
+  guardarPlan.textContent = d ? 'Aceptar' : 'Enviar';
 
   const tab = d ? d.tab : tabPlanActual;
 
@@ -1069,13 +1091,17 @@ guardarPlan.onclick = async () => {
   }
 };
 
-// Marcar plan como completado (mueve al tab "hecho" y guarda la fecha de hoy)
+// Marcar plan como completado — guarda fechaAnterior para restaurarla al desmarcar
 window.marcarCompletado = async (id, tabOrigen) => {
   try {
+    // Buscar fechaPlan actual para guardarla
+    const planActual = (renderPlanes._datos || []).find(d => d.id === id);
+    const fechaAnterior = planActual?.fechaPlan || '';
     const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
     await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', id), {
       tab: 'hecho',
       tabOrigen: tabOrigen,
+      fechaAnterior: fechaAnterior,
       fechaPlan: hoy
     });
     mostrarToast('¡Completado! 🎉', 'exito');
@@ -1085,12 +1111,15 @@ window.marcarCompletado = async (id, tabOrigen) => {
   }
 };
 
-// Desmarcar completado (regresa al tab de origen)
+// Desmarcar completado — regresa al tab de origen con la fecha original
 window.desmarcarCompletado = async (id, tabOrigen) => {
   try {
+    const planActual = (renderPlanes._datos || []).find(d => d.id === id);
+    const fechaRestaurada = planActual?.fechaAnterior || '';
     await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', id), {
       tab: tabOrigen,
-      fechaPlan: ''
+      fechaPlan: fechaRestaurada,
+      fechaAnterior: ''
     });
     mostrarToast('Movido de vuelta 💜', 'exito');
   } catch (e) {
@@ -1158,20 +1187,20 @@ function _renderPlanesHTML() {
       fechaLinea = `<p class="text-xs text-purple-400 mt-1">${icono} ${d.fechaPlan}</p>`;
     }
 
-    // Botones editar/eliminar (solo en modo editar)
-    const botonesEditar = modoEditarPlanes ? `
-      <div class="flex gap-2 mt-3 justify-end">
-        <button onclick='abrirModalPlan(${JSON.stringify(d).replace(/'/g, "&#39;")})'
-          class="text-xs px-3 py-1.5 rounded bg-purple-100 text-purple-600 hover:bg-purple-200 transition">
-          Editar
-        </button>
-        <button onclick="eliminarPlan('${d.id}')"
-          class="text-xs px-3 py-1.5 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">
-          Eliminar
-        </button>
-      </div>` : '';
+    // En modo editar: card es clickeable para editar, sin botón de eliminar inline
+    const cardClick = modoEditarPlanes
+      ? `onclick='abrirModalPlan(${JSON.stringify(d).replace(/'/g, "&#39;")})'`
+      : '';
+    const cursorEditar = modoEditarPlanes ? 'cursor-pointer hover:border-purple-600' : '';
 
-    // Botón ✓ para marcar/desmarcar completado (fuera de modo editar)
+    // Botón eliminar (solo en modo editar, en esquina inferior derecha)
+    const btnEliminarCard = modoEditarPlanes ? `
+      <button onclick="event.stopPropagation(); eliminarPlan('${d.id}')"
+        class="absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">
+        Eliminar
+      </button>` : '';
+
+    // Botón ✓ para marcar/desmarcar (fuera de modo editar)
     const btnCompletar = !modoEditarPlanes ? (
       !esHecho
         ? `<button onclick="marcarCompletado('${d.id}', '${d.tabOrigen || tabPlanActual}')"
@@ -1181,17 +1210,18 @@ function _renderPlanesHTML() {
           </button>`
         : `<button onclick="desmarcarCompletado('${d.id}', '${d.tabOrigen || 'pendiente'}')"
             title="Desmarcar"
-            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-400 bg-purple-100 flex items-center justify-center text-purple-600 hover:bg-purple-200 transition text-sm font-bold">
+            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-green-300 bg-green-100 flex items-center justify-center text-green-500 hover:bg-green-200 transition text-sm font-bold">
             ✓
           </button>`
     ) : '';
 
     return `
-      <div class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative ${esHecho ? 'opacity-60' : ''}">
+      <div ${cardClick}
+        class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative transition-all ${esHecho ? 'opacity-60' : ''} ${cursorEditar}">
         <p class="text-gray-700 break-words pr-10">${d.texto}</p>
         ${fechaLinea}
         ${btnCompletar}
-        ${botonesEditar}
+        ${btnEliminarCard}
       </div>`;
   }).join('');
 }
