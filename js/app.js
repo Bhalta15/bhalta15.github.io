@@ -1205,13 +1205,11 @@ function _renderPlanesHTML() {
       !esHecho
         ? `<button onclick="marcarCompletado('${d.id}', '${d.tabOrigen || tabPlanActual}')"
             title="Marcar como completado"
-            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 flex items-center justify-center text-purple-400 hover:bg-purple-100 hover:border-purple-500 transition text-sm font-bold">
-            ✓
+            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 hover:bg-purple-100 hover:border-purple-500 transition">
           </button>`
         : `<button onclick="desmarcarCompletado('${d.id}', '${d.tabOrigen || 'pendiente'}')"
             title="Desmarcar"
-            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-green-300 bg-green-100 flex items-center justify-center text-green-500 hover:bg-green-200 transition text-sm font-bold">
-            ✓
+            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-green-300 bg-green-100 hover:bg-green-200 transition">
           </button>`
     ) : '';
 
