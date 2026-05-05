@@ -21,7 +21,7 @@ let miGenero       = null;
 let unsubscribe    = null;
 let gruposAbiertos = {};
 let datosGlobal    = [];
-let seccionActiva  = "inicio";
+let seccionActiva  = "inicio"; // ← sección visible actualmente
 
 let idsConocidos = null;
 
@@ -271,13 +271,15 @@ document.querySelectorAll('.itemMenu').forEach(btn => {
     document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
     const seccion = btn.dataset.section;
     document.getElementById(seccion).classList.remove('hidden');
-    seccionActiva = seccion;
+    seccionActiva = seccion; // ← actualizar sección activa
 
     const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase', planes: 'plan' };
     if (tipoMap[seccion]) quitarCorazon(tipoMap[seccion]);
 
+    // Si salimos de planes, cancelar modo editar
     if (seccion !== 'planes') resetearModoEditarPlanes();
 
+    // Iniciar listener de planes la primera vez que se entra
     if (seccion === 'planes') {
       renderPlanes();
     }
@@ -647,6 +649,7 @@ function iniciarTiempoReal() {
           } catch { /* silencioso */ }
           await mostrarToastInApp(d.tipo, nombrePareja);
 
+          // Solo mostrar corazón si NO estás en esa sección
           const seccionDelTipo = { mensaje: 'mensajes', foto: 'fotos', cancion: 'canciones', frase: 'frases' };
           if (seccionActiva !== seccionDelTipo[d.tipo]) {
             mostrarCorazon(d.tipo);
@@ -807,18 +810,6 @@ function renderPorFecha(tipo, datos) {
     grupos[grupo].push(d);
   });
 
-  // ===== ESTADO VACÍO PERSONALIZADO =====
-  if (Object.keys(grupos).length === 0) {
-    const vacios = {
-      mensaje: "Aún no hay mensajes... ¡manda el primero! 💬",
-      foto:    "Aún no hay fotos... ¡sube un recuerdo! 📸",
-      cancion: "Aún no hay canciones... ¿cuál es la de ustedes? 🎵",
-      frase:   "Aún no hay frases... ¡exprésate! 💭"
-    };
-    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">${vacios[tipo]}</p>`;
-    return;
-  }
-
   let html = "";
   Object.keys(grupos).forEach((grupo, index) => {
     const id              = `grupo-${tipo}-${index}`;
@@ -952,7 +943,6 @@ function renderTodo(datos) {
   });
   renderInicio(datos);
 }
-
 // ===== PLANES =====
 let tabPlanActual    = "cita";
 let modoEditarPlanes = false;
@@ -983,7 +973,7 @@ function resetearModoEditarPlanes() {
   _renderPlanesHTML();
 }
 
-// Tabs de planes — Citas y Planes
+// Tabs de planes — solo Citas y Planes
 document.querySelectorAll('.tabPlan').forEach(btn => {
   btn.onclick = () => {
     tabPlanActual = btn.dataset.tab;
@@ -994,7 +984,9 @@ document.querySelectorAll('.tabPlan').forEach(btn => {
     btn.classList.remove('text-gray-400', 'border-transparent');
     btn.classList.add('text-purple-600', 'border-purple-500');
 
+    // Desactivar modo editar al cambiar de tab
     resetearModoEditarPlanes();
+
     _renderPlanesHTML();
   };
 });
@@ -1039,9 +1031,9 @@ window.abrirModalPlan = (d = null) => {
     inputPlanFecha.type = 'date';
     inputPlanFecha.placeholder = '';
   } else {
-    labelPlanFecha.textContent = 'Fecha límite (opcional)';
-    inputPlanFecha.type = 'text';
-    inputPlanFecha.placeholder = 'ej: este sábado, antes de junio...';
+    labelPlanFecha.textContent = 'Fecha del plan (opcional)';
+    inputPlanFecha.type = 'date';
+    inputPlanFecha.placeholder = '';
   }
 
   inputPlanFecha.value = d?.fechaPlan || '';
@@ -1097,7 +1089,7 @@ guardarPlan.onclick = async () => {
   }
 };
 
-// Marcar como completado
+// Marcar como completado — solo cambia estado visual, no cambia de tab
 window.marcarCompletado = async (id) => {
   try {
     await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', id), {
@@ -1110,25 +1102,19 @@ window.marcarCompletado = async (id) => {
   }
 };
 
-// Desmarcar — con modal de confirmación
+// Desmarcar — pide confirmación antes
 window.desmarcarCompletado = async (id, tab) => {
   const nombreTab = tab === 'cita' ? 'cita' : 'plan';
-  const modalConf  = document.getElementById('modalConfirmarDesmarcar');
+  const modalConf = document.getElementById('modalConfirmarDesmarcar');
   const btnAceptar = document.getElementById('aceptarDesmarcar');
   const btnCancelar = document.getElementById('cancelarDesmarcar');
-  const textoConf  = document.getElementById('textoDesmarcar');
+  const textoConf = document.getElementById('textoDesmarcar');
 
   textoConf.textContent = `¿Estás seguro de desmarcar esta ${nombreTab}?`;
   modalConf.classList.remove('hidden');
   modalConf.classList.add('flex');
 
-  // Clonar botones para evitar listeners duplicados
-  const nuevoAceptar = btnAceptar.cloneNode(true);
-  const nuevoCancelar = btnCancelar.cloneNode(true);
-  btnAceptar.replaceWith(nuevoAceptar);
-  btnCancelar.replaceWith(nuevoCancelar);
-
-  nuevoAceptar.onclick = async () => {
+  btnAceptar.onclick = async () => {
     modalConf.classList.add('hidden');
     modalConf.classList.remove('flex');
     try {
@@ -1142,46 +1128,21 @@ window.desmarcarCompletado = async (id, tab) => {
     }
   };
 
-  nuevoCancelar.onclick = () => {
+  btnCancelar.onclick = () => {
     modalConf.classList.add('hidden');
     modalConf.classList.remove('flex');
   };
 };
 
-// Eliminar plan — con modal de confirmación
-window.eliminarPlan = async (id, tab) => {
-  const nombreTab = (tab === 'cita') ? 'cita' : 'plan';
-  const modalConf  = document.getElementById('modalConfirmarEliminarPlan');
-  const btnAceptar = document.getElementById('aceptarEliminarPlan');
-  const btnCancelar = document.getElementById('cancelarEliminarPlan');
-  const textoConf  = document.getElementById('textoEliminarPlan');
-
-  textoConf.textContent = `¿Estás seguro de eliminar esta ${nombreTab}?`;
-  modalConf.classList.remove('hidden');
-  modalConf.classList.add('flex');
-
-  // Clonar botones para evitar listeners duplicados
-  const nuevoAceptar = btnAceptar.cloneNode(true);
-  const nuevoCancelar = btnCancelar.cloneNode(true);
-  btnAceptar.replaceWith(nuevoAceptar);
-  btnCancelar.replaceWith(nuevoCancelar);
-
-  nuevoAceptar.onclick = async () => {
-    modalConf.classList.add('hidden');
-    modalConf.classList.remove('flex');
-    try {
-      await deleteDoc(doc(db, 'parejas', codigoPareja, 'planes', id));
-      mostrarToast('¡Eliminado!', 'exito');
-    } catch (e) {
-      mostrarToast('Error al eliminar', 'error');
-      console.error(e);
-    }
-  };
-
-  nuevoCancelar.onclick = () => {
-    modalConf.classList.add('hidden');
-    modalConf.classList.remove('flex');
-  };
+// Eliminar plan
+window.eliminarPlan = async (id) => {
+  try {
+    await deleteDoc(doc(db, 'parejas', codigoPareja, 'planes', id));
+    mostrarToast('¡Eliminado!', 'exito');
+  } catch (e) {
+    mostrarToast('Error al eliminar', 'error');
+    console.error(e);
+  }
 };
 
 // Listener en tiempo real para planes
@@ -1209,12 +1170,7 @@ function _renderPlanesHTML() {
   const datos = (renderPlanes._datos || []).filter(d => d.tab === tabPlanActual);
 
   if (datos.length === 0) {
-    // ===== ESTADO VACÍO PERSONALIZADO PARA PLANES =====
-    const vaciosPlan = {
-      cita: "Aún no hay citas planeadas... ¡propón una! 🗓️",
-      plan: "Aún no hay planes... ¡qué se les ocurre! 💡"
-    };
-    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">${vaciosPlan[tabPlanActual]}</p>`;
+    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">Aún no hay nada aquí 💜</p>`;
     return;
   }
 
@@ -1239,14 +1195,14 @@ function _renderPlanesHTML() {
       : '';
     const cursorEditar = modoEditarPlanes ? 'cursor-pointer hover:border-purple-600' : '';
 
-    // Botón eliminar en modo editar — ahora pasa también el tab para el modal
+    // Botón eliminar en modo editar
     const btnEliminarCard = modoEditarPlanes ? `
-      <button onclick="event.stopPropagation(); eliminarPlan('${d.id}', '${d.tab}')"
+      <button onclick="event.stopPropagation(); eliminarPlan('${d.id}')"
         class="absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">
         Eliminar
       </button>` : '';
 
-    // Círculo palomita — sin tachado en el texto al estar completado
+    // Círculo palomita — morado si no completado, verde si completado
     const btnCirculo = !modoEditarPlanes ? (
       !d.completado
         ? `<button onclick="marcarCompletado('${d.id}')"
@@ -1265,7 +1221,7 @@ function _renderPlanesHTML() {
     return `
       <div ${cardClick}
         class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative transition-all ${d.completado ? 'opacity-60' : ''} ${cursorEditar}">
-        <p class="text-gray-700 break-words pr-10">${d.texto}</p>
+        <p class="text-gray-700 break-words pr-10 ${d.completado ? 'line-through text-gray-400' : ''}">${d.texto}</p>
         ${fechaLinea}
         ${btnCirculo}
         ${btnEliminarCard}
