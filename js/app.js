@@ -1039,9 +1039,9 @@ window.abrirModalPlan = (d = null) => {
     inputPlanFecha.type = 'date';
     inputPlanFecha.placeholder = '';
   } else {
-    labelPlanFecha.textContent = 'Fecha límite (opcional)';
-    inputPlanFecha.type = 'text';
-    inputPlanFecha.placeholder = 'ej: este sábado, antes de junio...';
+    labelPlanFecha.textContent = 'Fecha del plan (opcional)';
+    inputPlanFecha.type = 'date';
+    inputPlanFecha.placeholder = '';
   }
 
   inputPlanFecha.value = d?.fechaPlan || '';
