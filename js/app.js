@@ -943,7 +943,6 @@ function renderTodo(datos) {
   });
   renderInicio(datos);
 }
-
 // ===== PLANES =====
 let tabPlanActual    = "cita";
 let modoEditarPlanes = false;
@@ -957,7 +956,6 @@ const labelPlanFecha  = document.getElementById('labelPlanFecha');
 const cancelarPlan    = document.getElementById('cancelarPlan');
 const guardarPlan     = document.getElementById('guardarPlan');
 
-// Función para resetear el modo editar (usada al cambiar de sección)
 function resetearModoEditarPlanes() {
   if (!modoEditarPlanes) return;
   modoEditarPlanes = false;
@@ -970,12 +968,12 @@ function resetearModoEditarPlanes() {
       <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
       <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
     </svg>`;
-  // Mostrar botón Nuevo de nuevo
   const btnNuevo = document.getElementById('btnNuevoPlan');
   if (btnNuevo) btnNuevo.classList.remove('hidden');
+  _renderPlanesHTML();
 }
 
-// Tabs de planes
+// Tabs de planes — solo Citas y Planes
 document.querySelectorAll('.tabPlan').forEach(btn => {
   btn.onclick = () => {
     tabPlanActual = btn.dataset.tab;
@@ -985,11 +983,15 @@ document.querySelectorAll('.tabPlan').forEach(btn => {
     });
     btn.classList.remove('text-gray-400', 'border-transparent');
     btn.classList.add('text-purple-600', 'border-purple-500');
+
+    // Desactivar modo editar al cambiar de tab
+    resetearModoEditarPlanes();
+
     _renderPlanesHTML();
   };
 });
 
-// Modo editar planes — toca card para editar, oculta botón Nuevo
+// Modo editar planes
 window.activarModoEditarPlanes = () => {
   modoEditarPlanes = !modoEditarPlanes;
   const btn = document.getElementById('btnEditarPlan');
@@ -1018,7 +1020,7 @@ window.activarModoEditarPlanes = () => {
 // Abrir modal nuevo o editar plan
 window.abrirModalPlan = (d = null) => {
   planEditandoId = d ? d.id : null;
-  modalPlanTitulo.textContent = d ? 'Editar plan' : 'Nuevo plan';
+  modalPlanTitulo.textContent = d ? 'Editar' : 'Nuevo';
   inputPlanTexto.value = d ? d.texto : '';
   guardarPlan.textContent = d ? 'Aceptar' : 'Enviar';
 
@@ -1028,14 +1030,10 @@ window.abrirModalPlan = (d = null) => {
     labelPlanFecha.textContent = 'Fecha de la cita (opcional)';
     inputPlanFecha.type = 'date';
     inputPlanFecha.placeholder = '';
-  } else if (tab === 'pendiente') {
+  } else {
     labelPlanFecha.textContent = 'Fecha límite (opcional)';
     inputPlanFecha.type = 'text';
     inputPlanFecha.placeholder = 'ej: este sábado, antes de junio...';
-  } else {
-    labelPlanFecha.textContent = '¿Cuándo lo hicieron? (opcional)';
-    inputPlanFecha.type = 'text';
-    inputPlanFecha.placeholder = 'ej: 1 mayo 2026';
   }
 
   inputPlanFecha.value = d?.fechaPlan || '';
@@ -1078,9 +1076,9 @@ guardarPlan.onclick = async () => {
         texto,
         fechaPlan,
         tab: tabPlanActual,
-        tabOrigen: tabPlanActual,
         fecha: new Date(),
-        autorUid: miUid
+        autorUid: miUid,
+        completado: false
       });
       mostrarToast('¡Guardado!', 'exito');
       cerrarModalPlan();
@@ -1091,18 +1089,11 @@ guardarPlan.onclick = async () => {
   }
 };
 
-// Marcar plan como completado — guarda fechaAnterior para restaurarla al desmarcar
-window.marcarCompletado = async (id, tabOrigen) => {
+// Marcar como completado — solo cambia estado visual, no cambia de tab
+window.marcarCompletado = async (id) => {
   try {
-    // Buscar fechaPlan actual para guardarla
-    const planActual = (renderPlanes._datos || []).find(d => d.id === id);
-    const fechaAnterior = planActual?.fechaPlan || '';
-    const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
     await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', id), {
-      tab: 'hecho',
-      tabOrigen: tabOrigen,
-      fechaAnterior: fechaAnterior,
-      fechaPlan: hoy
+      completado: true
     });
     mostrarToast('¡Completado! 🎉', 'exito');
   } catch (e) {
@@ -1111,26 +1102,40 @@ window.marcarCompletado = async (id, tabOrigen) => {
   }
 };
 
-// Desmarcar completado — regresa al tab de origen con la fecha original
-window.desmarcarCompletado = async (id, tabOrigen) => {
-  try {
-    const planActual = (renderPlanes._datos || []).find(d => d.id === id);
-    const fechaRestaurada = planActual?.fechaAnterior || '';
-    await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', id), {
-      tab: tabOrigen,
-      fechaPlan: fechaRestaurada,
-      fechaAnterior: ''
-    });
-    mostrarToast('Movido de vuelta 💜', 'exito');
-  } catch (e) {
-    mostrarToast('Error', 'error');
-    console.error(e);
-  }
+// Desmarcar — pide confirmación antes
+window.desmarcarCompletado = async (id, tab) => {
+  const nombreTab = tab === 'cita' ? 'cita' : 'plan';
+  const modalConf = document.getElementById('modalConfirmarDesmarcar');
+  const btnAceptar = document.getElementById('aceptarDesmarcar');
+  const btnCancelar = document.getElementById('cancelarDesmarcar');
+  const textoConf = document.getElementById('textoDesmarcar');
+
+  textoConf.textContent = `¿Estás seguro de desmarcar esta ${nombreTab}?`;
+  modalConf.classList.remove('hidden');
+  modalConf.classList.add('flex');
+
+  btnAceptar.onclick = async () => {
+    modalConf.classList.add('hidden');
+    modalConf.classList.remove('flex');
+    try {
+      await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', id), {
+        completado: false
+      });
+      mostrarToast('Desmarcado 💜', 'exito');
+    } catch (e) {
+      mostrarToast('Error', 'error');
+      console.error(e);
+    }
+  };
+
+  btnCancelar.onclick = () => {
+    modalConf.classList.add('hidden');
+    modalConf.classList.remove('flex');
+  };
 };
 
 // Eliminar plan
 window.eliminarPlan = async (id) => {
-  if (!confirm('¿Eliminar este plan?')) return;
   try {
     await deleteDoc(doc(db, 'parejas', codigoPareja, 'planes', id));
     mostrarToast('¡Eliminado!', 'exito');
@@ -1140,7 +1145,7 @@ window.eliminarPlan = async (id) => {
   }
 };
 
-// Iniciar listener en tiempo real para planes
+// Listener en tiempo real para planes
 function renderPlanes() {
   if (renderPlanes._unsub) {
     _renderPlanesHTML();
@@ -1170,9 +1175,7 @@ function _renderPlanesHTML() {
   }
 
   cont.innerHTML = datos.map(d => {
-    const esHecho = d.tab === 'hecho';
-
-    // Línea de fecha según tab
+    // Línea de fecha
     let fechaLinea = '';
     if (d.tab === 'cita' && d.fechaPlan) {
       let fechaTexto = d.fechaPlan;
@@ -1183,42 +1186,44 @@ function _renderPlanesHTML() {
       } catch {}
       fechaLinea = `<p class="text-xs text-purple-400 mt-1">📅 ${fechaTexto}</p>`;
     } else if (d.fechaPlan) {
-      const icono = esHecho ? '✓' : '⏳';
-      fechaLinea = `<p class="text-xs text-purple-400 mt-1">${icono} ${d.fechaPlan}</p>`;
+      fechaLinea = `<p class="text-xs text-purple-400 mt-1">⏳ ${d.fechaPlan}</p>`;
     }
 
-    // En modo editar: card es clickeable para editar, sin botón de eliminar inline
+    // Card clickeable en modo editar
     const cardClick = modoEditarPlanes
       ? `onclick='abrirModalPlan(${JSON.stringify(d).replace(/'/g, "&#39;")})'`
       : '';
     const cursorEditar = modoEditarPlanes ? 'cursor-pointer hover:border-purple-600' : '';
 
-    // Botón eliminar (solo en modo editar, en esquina inferior derecha)
+    // Botón eliminar en modo editar
     const btnEliminarCard = modoEditarPlanes ? `
       <button onclick="event.stopPropagation(); eliminarPlan('${d.id}')"
         class="absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">
         Eliminar
       </button>` : '';
 
-    // Botón ✓ para marcar/desmarcar (fuera de modo editar)
-    const btnCompletar = !modoEditarPlanes ? (
-      !esHecho
-        ? `<button onclick="marcarCompletado('${d.id}', '${d.tabOrigen || tabPlanActual}')"
+    // Círculo palomita — morado si no completado, verde si completado
+    const btnCirculo = !modoEditarPlanes ? (
+      !d.completado
+        ? `<button onclick="marcarCompletado('${d.id}')"
             title="Marcar como completado"
-            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 hover:bg-purple-100 hover:border-purple-500 transition">
+            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 hover:bg-purple-100 hover:border-purple-500 transition flex items-center justify-center">
           </button>`
-        : `<button onclick="desmarcarCompletado('${d.id}', '${d.tabOrigen || 'pendiente'}')"
+        : `<button onclick="desmarcarCompletado('${d.id}', '${d.tab}')"
             title="Desmarcar"
-            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-green-300 bg-green-100 hover:bg-green-200 transition">
+            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-green-400 bg-green-100 hover:bg-green-200 transition flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
           </button>`
     ) : '';
 
     return `
       <div ${cardClick}
-        class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative transition-all ${esHecho ? 'opacity-60' : ''} ${cursorEditar}">
-        <p class="text-gray-700 break-words pr-10">${d.texto}</p>
+        class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative transition-all ${d.completado ? 'opacity-60' : ''} ${cursorEditar}">
+        <p class="text-gray-700 break-words pr-10 ${d.completado ? 'line-through text-gray-400' : ''}">${d.texto}</p>
         ${fechaLinea}
-        ${btnCompletar}
+        ${btnCirculo}
         ${btnEliminarCard}
       </div>`;
   }).join('');
