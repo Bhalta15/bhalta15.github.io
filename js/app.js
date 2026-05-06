@@ -225,7 +225,13 @@ function actualizarMenuActivo(seccion) {
   });
 }
 
-// ===== FIX 2: resetear modo editar al cambiar de sección =====
+// ===== SVG DEL LÁPIZ (reutilizable) =====
+const lapizSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+</svg>`;
+
+// ===== FIX 3: resetear modo editar al cambiar de sección — RESTAURA el SVG del lápiz =====
 function resetearTodosModoEditar() {
   ['mensaje', 'foto', 'cancion', 'frase'].forEach(tipo => {
     if (modoEditarSeccion[tipo]) {
@@ -235,6 +241,7 @@ function resetearTodosModoEditar() {
       if (btnEditar) {
         btnEditar.classList.add('bg-purple-100', 'text-purple-600');
         btnEditar.classList.remove('bg-purple-500', 'text-white');
+        btnEditar.innerHTML = lapizSVG; // ← FIX 3: restaurar SVG
       }
       if (btnNuevo) btnNuevo.classList.remove('hidden');
     }
@@ -249,7 +256,7 @@ document.querySelectorAll('.itemMenu').forEach(btn => {
     seccionActiva = seccion;
     actualizarMenuActivo(seccion);
 
-    // FIX 2: resetear todos los modos editar al navegar
+    // FIX 3: resetear todos los modos editar al navegar
     resetearTodosModoEditar();
 
     const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase', planes: 'plan' };
@@ -438,27 +445,29 @@ function agregarDobleTap(el, d) {
   el.addEventListener("dblclick", handler);
 }
 
-// ===== FIX 1: MODO EDITAR POR SECCIÓN — igual que planes =====
-// Lápiz → tachecito, card propia clickeable (editar), botón Eliminar en card
-// Card ajena → solo atenuada, sin acciones
+// ===== FIX 2: SVG BASURERO (reutilizable) =====
+const basureroSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+  <polyline points="3 6 5 6 21 6"/>
+  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+  <path d="M10 11v6"/>
+  <path d="M14 11v6"/>
+  <path d="M9 6V4h6v2"/>
+</svg>`;
+
+// ===== MODO EDITAR POR SECCIÓN =====
 window.activarModoEditarSeccion = (tipo) => {
   modoEditarSeccion[tipo] = !modoEditarSeccion[tipo];
   const btnEditar = document.getElementById(`btnEditar${capitalizar(tipo)}`);
   const btnNuevo  = document.getElementById(`btnNuevo${capitalizar(tipo)}`);
   if (modoEditarSeccion[tipo]) {
-    // Lápiz → tachecito morado
     btnEditar.classList.remove('bg-purple-100', 'text-purple-600');
     btnEditar.classList.add('bg-purple-500', 'text-white');
     btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
     if (btnNuevo) btnNuevo.classList.add('hidden');
   } else {
-    // Tachecito → lápiz
     btnEditar.classList.add('bg-purple-100', 'text-purple-600');
     btnEditar.classList.remove('bg-purple-500', 'text-white');
-    btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-    </svg>`;
+    btnEditar.innerHTML = lapizSVG; // ← usa la constante
     if (btnNuevo) btnNuevo.classList.remove('hidden');
   }
   rerenderSeccion(tipo);
@@ -591,6 +600,13 @@ function ojitaSVG() {
     </svg></button>`;
 }
 
+// ===== FIX 1 y 2: BOTÓN BASURERO — sin texto, icono circulito rojo =====
+function btnBasureroHTML(id, tipo) {
+  return `<button class="btn-eliminar-card absolute bottom-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-400 hover:bg-red-200 transition" data-id="${id}" data-tipo="${tipo}">
+    ${basureroSVG}
+  </button>`;
+}
+
 // ===== CREAR CARD =====
 function crearCardHTML(d, enModoEditar) {
   const borde   = borderPorGenero(d.autorGenero);
@@ -598,15 +614,11 @@ function crearCardHTML(d, enModoEditar) {
   const esMio   = d.autorUid === miUid;
   const opAjena = (enModoEditar && !esMio) ? "opacity-40" : "";
 
-  // FIX 1: card propia en modo editar → clickeable para editar + botón Eliminar (igual que planes)
-  // Card ajena en modo editar → solo atenuada, sin acciones ni links activos
   const cursorEditar = (enModoEditar && esMio) ? 'cursor-pointer hover:border-purple-400' : '';
   const clickEditar  = (enModoEditar && esMio) ? `data-editar="true"` : '';
 
-  // Botón Eliminar en card (solo para las propias en modo editar)
-  const btnEliminar = (enModoEditar && esMio)
-    ? `<button class="btn-eliminar-card absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">Eliminar</button>`
-    : "";
+  // FIX 1 y 2: basurero circular sin texto
+  const btnEliminar = (enModoEditar && esMio) ? btnBasureroHTML(d.id, d.tipo) : "";
 
   if (d.tipo === "mensaje" || d.tipo === "frase") {
     return `<div data-id="${d.id}" ${clickEditar}
@@ -630,17 +642,14 @@ function crearCardHTML(d, enModoEditar) {
     let desc = "", link = "";
     try { const p = JSON.parse(d.contenido); desc = p.desc; link = p.link; } catch { link = d.contenido; }
 
-    // FIX 3: en modo editar desactivar links y botón Escuchar para TODAS las cards (propias y ajenas)
+    // FIX 1: en modo editar, pb-14 da espacio para que el basurero NO tape el botón Escuchar
     if (enModoEditar) {
       return `<div data-id="${d.id}" ${esMio ? clickEditar : ''}
-        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${esMio ? cursorEditar : ''}">
+        class="bg-white shadow-lg rounded-xl p-5 pb-14 ${borde} relative transition-all duration-300 select-none ${opAjena} ${esMio ? cursorEditar : ''}">
         ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
         <div class="flex items-center justify-between">
           <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
-          ${esMio
-            ? `<span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>`
-            : `<span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>`
-          }
+          <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>
         </div>
         ${corazon}${btnEliminar}</div>`;
     }
@@ -704,7 +713,6 @@ function renderPorFecha(tipo, datos) {
     if (!cardEl) return;
 
     if (enModoEditar) {
-      // FIX 1: card propia → clic en cualquier parte abre modal editar (excepto botón eliminar)
       if (d.autorUid === miUid) {
         cardEl.addEventListener('click', (e) => {
           if (e.target.closest('.btn-eliminar-card')) return;
@@ -716,9 +724,7 @@ function renderPorFecha(tipo, datos) {
           window.solicitarEliminarCard(d.id, d.tipo);
         });
       }
-      // Card ajena → sin eventos (solo atenuada)
     } else {
-      // Modo normal: doble tap para reaccionar
       agregarDobleTap(cardEl, d);
       if (d.tipo === "foto") {
         const ojito = cardEl.querySelector(".btn-ver-foto");
@@ -796,10 +802,7 @@ function resetearModoEditarPlanes() {
   if (!btn) return;
   btn.classList.add('bg-purple-100', 'text-purple-600');
   btn.classList.remove('bg-purple-500', 'text-white');
-  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-    <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-  </svg>`;
+  btn.innerHTML = lapizSVG;
   const btnNuevo = document.getElementById('btnNuevoPlan');
   if (btnNuevo) btnNuevo.classList.remove('hidden');
   _renderPlanesHTML();
@@ -828,10 +831,7 @@ window.activarModoEditarPlanes = () => {
   } else {
     btn.classList.add('bg-purple-100', 'text-purple-600');
     btn.classList.remove('bg-purple-500', 'text-white');
-    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-    </svg>`;
+    btn.innerHTML = lapizSVG;
     if (btnNuevo) btnNuevo.classList.remove('hidden');
   }
   _renderPlanesHTML();
@@ -944,7 +944,15 @@ function _renderPlanesHTML() {
     }
     const cardClick  = modoEditarPlanes ? `onclick='abrirModalPlan(${JSON.stringify(d).replace(/'/g, "&#39;")})'` : '';
     const cursorEdit = modoEditarPlanes ? 'cursor-pointer hover:border-purple-600' : '';
-    const btnElim    = modoEditarPlanes ? `<button onclick="event.stopPropagation(); eliminarPlan('${d.id}', '${d.tab}')" class="absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">Eliminar</button>` : '';
+
+    // FIX 2: basurero en planes también
+    const btnElim = modoEditarPlanes
+      ? `<button onclick="event.stopPropagation(); eliminarPlan('${d.id}', '${d.tab}')"
+          class="absolute bottom-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-400 hover:bg-red-200 transition">
+          ${basureroSVG}
+        </button>`
+      : '';
+
     const btnCirculo = !modoEditarPlanes ? (
       !d.completado
         ? `<button onclick="marcarCompletado('${d.id}')" title="Marcar como completado" class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 hover:bg-purple-100 hover:border-purple-500 transition flex items-center justify-center"></button>`
@@ -952,9 +960,10 @@ function _renderPlanesHTML() {
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
           </button>`
     ) : '';
+
     return `<div ${cardClick} class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative transition-all ${d.completado ? 'opacity-60' : ''} ${cursorEdit}">
       <p class="text-gray-700 break-words pr-10">${d.texto}</p>
       ${fechaLinea}${btnCirculo}${btnElim}
     </div>`;
   }).join('');
-            }
+}
