@@ -24,7 +24,7 @@ let datosGlobal    = [];
 let seccionActiva  = "inicio";
 let idsConocidos   = null;
 
-// Modos editar por sección (nuevo sistema de botón lápiz)
+// Modos editar por sección
 const modoEditarSeccion = { mensaje: false, foto: false, cancion: false, frase: false };
 
 // ===== CORAZONES MENÚ =====
@@ -218,11 +218,26 @@ function cerrarMenu() {
   overlay.classList.add('hidden');
 }
 
-// Marcar ítem activo con morado claro persistente
 function actualizarMenuActivo(seccion) {
   document.querySelectorAll('.itemMenu').forEach(btn => {
     btn.classList.remove('activo');
     if (btn.dataset.section === seccion) btn.classList.add('activo');
+  });
+}
+
+// ===== FIX 2: resetear modo editar al cambiar de sección =====
+function resetearTodosModoEditar() {
+  ['mensaje', 'foto', 'cancion', 'frase'].forEach(tipo => {
+    if (modoEditarSeccion[tipo]) {
+      modoEditarSeccion[tipo] = false;
+      const btnEditar = document.getElementById(`btnEditar${capitalizar(tipo)}`);
+      const btnNuevo  = document.getElementById(`btnNuevo${capitalizar(tipo)}`);
+      if (btnEditar) {
+        btnEditar.classList.add('bg-purple-100', 'text-purple-600');
+        btnEditar.classList.remove('bg-purple-500', 'text-white');
+      }
+      if (btnNuevo) btnNuevo.classList.remove('hidden');
+    }
   });
 }
 
@@ -233,6 +248,10 @@ document.querySelectorAll('.itemMenu').forEach(btn => {
     document.getElementById(seccion).classList.remove('hidden');
     seccionActiva = seccion;
     actualizarMenuActivo(seccion);
+
+    // FIX 2: resetear todos los modos editar al navegar
+    resetearTodosModoEditar();
+
     const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase', planes: 'plan' };
     if (tipoMap[seccion]) quitarCorazon(tipoMap[seccion]);
     if (seccion !== 'planes') resetearModoEditarPlanes();
@@ -254,7 +273,6 @@ window.abrirModal = (tipo) => {
   inputDescCancion.value = "";
   inputLinkCancion.value = "";
   inputFile.value = "";
-  // Título personalizado
   if (modalNuevoTitulo) modalNuevoTitulo.textContent = titulosNuevo[tipo] || "Nuevo contenido";
   if (tipo === "mensaje" || tipo === "frase") inputTexto.classList.remove('hidden');
   else if (tipo === "cancion") inputCancionDiv.classList.remove('hidden');
@@ -352,7 +370,6 @@ function abrirModalEditar(d) {
   editDescCancion.value = "";
   editLinkCancion.value = "";
   editFile.value = "";
-  // Título personalizado en morado
   modalEditarTitulo.textContent = titulosEditar[d.tipo] || "Editar";
   if (d.tipo === "mensaje" || d.tipo === "frase") {
     editTexto.classList.remove('hidden');
@@ -402,7 +419,7 @@ guardarEditar.onclick = async () => {
   } catch (error) { mostrarToast("Error al guardar", "error"); console.error(error); }
 };
 
-// ===== REACCIONAR (doble tap solo para contenido ajeno) =====
+// ===== REACCIONAR (doble tap solo para contenido ajeno, fuera de modo editar) =====
 async function toggleReaccion(d) {
   if (d.autorUid === miUid) { mostrarToast("No puedes reaccionar a tu propio contenido", "info"); return; }
   const ref = doc(db, "parejas", codigoPareja, "contenido", d.id);
@@ -412,7 +429,7 @@ async function toggleReaccion(d) {
 function agregarDobleTap(el, d) {
   let lastTap = 0;
   const handler = (e) => {
-    if (e.target.closest('.btn-ver-foto') || e.target.closest('.btn-editar-card') || e.target.closest('.btn-eliminar-card')) return;
+    if (e.target.closest('.btn-ver-foto') || e.target.closest('.btn-eliminar-card')) return;
     const now = Date.now();
     if (now - lastTap < 300) { lastTap = 0; if (d.autorUid !== miUid) toggleReaccion(d); }
     else lastTap = now;
@@ -421,18 +438,27 @@ function agregarDobleTap(el, d) {
   el.addEventListener("dblclick", handler);
 }
 
-// ===== MODO EDITAR POR SECCIÓN =====
+// ===== FIX 1: MODO EDITAR POR SECCIÓN — igual que planes =====
+// Lápiz → tachecito, card propia clickeable (editar), botón Eliminar en card
+// Card ajena → solo atenuada, sin acciones
 window.activarModoEditarSeccion = (tipo) => {
   modoEditarSeccion[tipo] = !modoEditarSeccion[tipo];
   const btnEditar = document.getElementById(`btnEditar${capitalizar(tipo)}`);
   const btnNuevo  = document.getElementById(`btnNuevo${capitalizar(tipo)}`);
   if (modoEditarSeccion[tipo]) {
+    // Lápiz → tachecito morado
     btnEditar.classList.remove('bg-purple-100', 'text-purple-600');
     btnEditar.classList.add('bg-purple-500', 'text-white');
+    btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
     if (btnNuevo) btnNuevo.classList.add('hidden');
   } else {
+    // Tachecito → lápiz
     btnEditar.classList.add('bg-purple-100', 'text-purple-600');
     btnEditar.classList.remove('bg-purple-500', 'text-white');
+    btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>`;
     if (btnNuevo) btnNuevo.classList.remove('hidden');
   }
   rerenderSeccion(tipo);
@@ -533,7 +559,6 @@ function formatearFechaCorta(fecha) {
   return f.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
 }
 
-// Formatea "YYYY-MM-DD" → "jueves, 12 de junio" (mismo formato citas y planes)
 function formatearFechaPlan(fechaPlan) {
   try {
     const [y, m, day] = fechaPlan.split('-');
@@ -566,47 +591,71 @@ function ojitaSVG() {
     </svg></button>`;
 }
 
-// Botones Editar/Eliminar dentro de la card (solo cuando modoEditar activo y es mío)
-function botonesEditarCardHTML(d) {
-  return `<div class="flex gap-2 mt-3 justify-end">
-    <button data-id="${d.id}" class="btn-editar-card text-xs px-3 py-1 rounded bg-purple-100 text-purple-600 hover:bg-purple-200 transition">Editar</button>
-    <button data-id="${d.id}" class="btn-eliminar-card text-xs px-3 py-1 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">Eliminar</button>
-  </div>`;
-}
-
 // ===== CREAR CARD =====
 function crearCardHTML(d, enModoEditar) {
   const borde   = borderPorGenero(d.autorGenero);
   const corazon = heartSVG(d);
   const esMio   = d.autorUid === miUid;
-  const botones = (enModoEditar && esMio) ? botonesEditarCardHTML(d) : "";
   const opAjena = (enModoEditar && !esMio) ? "opacity-40" : "";
 
+  // FIX 1: card propia en modo editar → clickeable para editar + botón Eliminar (igual que planes)
+  // Card ajena en modo editar → solo atenuada, sin acciones ni links activos
+  const cursorEditar = (enModoEditar && esMio) ? 'cursor-pointer hover:border-purple-400' : '';
+  const clickEditar  = (enModoEditar && esMio) ? `data-editar="true"` : '';
+
+  // Botón Eliminar en card (solo para las propias en modo editar)
+  const btnEliminar = (enModoEditar && esMio)
+    ? `<button class="btn-eliminar-card absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">Eliminar</button>`
+    : "";
+
   if (d.tipo === "mensaje" || d.tipo === "frase") {
-    return `<div data-id="${d.id}" class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena}">
-      <p class="text-gray-700 text-lg break-all">"${d.contenido}"</p>
-      ${corazon}${botones}</div>`;
+    return `<div data-id="${d.id}" ${clickEditar}
+      class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
+      <p class="text-gray-700 text-lg break-all pr-8">"${d.contenido}"</p>
+      ${corazon}${btnEliminar}</div>`;
   }
 
   if (d.tipo === "foto") {
-    return `<div data-id="${d.id}" class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none ${opAjena}">
+    return `<div data-id="${d.id}" ${clickEditar}
+      class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
       <div class="w-full h-48 overflow-hidden rounded-lg">
         <img src="${d.contenido}" alt="Foto" class="w-full h-full object-cover">
       </div>
-      ${corazon}${enModoEditar ? "" : ojitaSVG()}${botones}</div>`;
+      ${corazon}
+      ${enModoEditar ? "" : ojitaSVG()}
+      ${btnEliminar}</div>`;
   }
 
   if (d.tipo === "cancion") {
     let desc = "", link = "";
     try { const p = JSON.parse(d.contenido); desc = p.desc; link = p.link; } catch { link = d.contenido; }
-    return `<div data-id="${d.id}" class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena}">
+
+    // FIX 3: en modo editar desactivar links y botón Escuchar para TODAS las cards (propias y ajenas)
+    if (enModoEditar) {
+      return `<div data-id="${d.id}" ${esMio ? clickEditar : ''}
+        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${esMio ? cursorEditar : ''}">
+        ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
+        <div class="flex items-center justify-between">
+          <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
+          ${esMio
+            ? `<span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>`
+            : `<span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>`
+          }
+        </div>
+        ${corazon}${btnEliminar}</div>`;
+    }
+
+    // Modo normal: links y botón activos
+    return `<div data-id="${d.id}"
+      class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
       ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
       <div class="flex items-center justify-between">
         <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm truncate max-w-[70%]">${link}</a>
         <a href="${link}" target="_blank" class="ml-2 px-3 py-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm rounded-lg transition whitespace-nowrap">Escuchar ▶</a>
       </div>
-      ${corazon}${botones}</div>`;
+      ${corazon}</div>`;
   }
+
   return "";
 }
 
@@ -632,8 +681,8 @@ function renderPorFecha(tipo, datos) {
 
   let html = "";
   Object.keys(grupos).forEach((grupo, index) => {
-    const id     = `grupo-${tipo}-${index}`;
-    const esHoy  = grupo === "Hoy" || gruposAbiertos[id];
+    const id    = `grupo-${tipo}-${index}`;
+    const esHoy = grupo === "Hoy" || gruposAbiertos[id];
     html += `<div class="mt-4">
       <div onclick="toggleGrupo('${id}', this)" class="flex justify-between items-center cursor-pointer">
         <p class="text-sm text-gray-500">${grupo}</p>
@@ -649,16 +698,27 @@ function renderPorFecha(tipo, datos) {
 
   cont.innerHTML = html;
 
+  // Asignar eventos a las cards
   datos.forEach(d => {
     const cardEl = cont.querySelector(`[data-id="${d.id}"]`);
     if (!cardEl) return;
-    if (enModoEditar && d.autorUid === miUid) {
-      const btnEd = cardEl.querySelector('.btn-editar-card');
-      const btnEl = cardEl.querySelector('.btn-eliminar-card');
-      if (btnEd) btnEd.addEventListener('click', e => { e.stopPropagation(); abrirModalEditar(d); });
-      if (btnEl) btnEl.addEventListener('click', e => { e.stopPropagation(); window.solicitarEliminarCard(d.id, d.tipo); });
-    }
-    if (!enModoEditar) {
+
+    if (enModoEditar) {
+      // FIX 1: card propia → clic en cualquier parte abre modal editar (excepto botón eliminar)
+      if (d.autorUid === miUid) {
+        cardEl.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-eliminar-card')) return;
+          abrirModalEditar(d);
+        });
+        const btnEl = cardEl.querySelector('.btn-eliminar-card');
+        if (btnEl) btnEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.solicitarEliminarCard(d.id, d.tipo);
+        });
+      }
+      // Card ajena → sin eventos (solo atenuada)
+    } else {
+      // Modo normal: doble tap para reaccionar
       agregarDobleTap(cardEl, d);
       if (d.tipo === "foto") {
         const ojito = cardEl.querySelector(".btn-ver-foto");
@@ -877,17 +937,14 @@ function _renderPlanesHTML() {
   }
 
   cont.innerHTML = datos.map(d => {
-    // Fecha con mismo formato tanto para citas como para planes
     let fechaLinea = '';
     if (d.fechaPlan) {
       const emoji = d.tab === 'cita' ? '📅' : '⏳';
       fechaLinea = `<p class="text-xs text-purple-400 mt-1">${emoji} ${formatearFechaPlan(d.fechaPlan)}</p>`;
     }
-
-    const cardClick   = modoEditarPlanes ? `onclick='abrirModalPlan(${JSON.stringify(d).replace(/'/g, "&#39;")})'` : '';
-    const cursorEdit  = modoEditarPlanes ? 'cursor-pointer hover:border-purple-600' : '';
-    const btnElimCard = modoEditarPlanes ? `<button onclick="event.stopPropagation(); eliminarPlan('${d.id}', '${d.tab}')" class="absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">Eliminar</button>` : '';
-
+    const cardClick  = modoEditarPlanes ? `onclick='abrirModalPlan(${JSON.stringify(d).replace(/'/g, "&#39;")})'` : '';
+    const cursorEdit = modoEditarPlanes ? 'cursor-pointer hover:border-purple-600' : '';
+    const btnElim    = modoEditarPlanes ? `<button onclick="event.stopPropagation(); eliminarPlan('${d.id}', '${d.tab}')" class="absolute bottom-3 right-3 text-xs px-2.5 py-1 rounded bg-red-100 text-red-400 hover:bg-red-200 transition">Eliminar</button>` : '';
     const btnCirculo = !modoEditarPlanes ? (
       !d.completado
         ? `<button onclick="marcarCompletado('${d.id}')" title="Marcar como completado" class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 hover:bg-purple-100 hover:border-purple-500 transition flex items-center justify-center"></button>`
@@ -895,10 +952,9 @@ function _renderPlanesHTML() {
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
           </button>`
     ) : '';
-
     return `<div ${cardClick} class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative transition-all ${d.completado ? 'opacity-60' : ''} ${cursorEdit}">
       <p class="text-gray-700 break-words pr-10">${d.texto}</p>
-      ${fechaLinea}${btnCirculo}${btnElimCard}
+      ${fechaLinea}${btnCirculo}${btnElim}
     </div>`;
   }).join('');
-}
+            }
