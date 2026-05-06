@@ -24,33 +24,45 @@ let datosGlobal    = [];
 let seccionActiva  = "inicio";
 let idsConocidos   = null;
 
-// ===== MODO POR SECCIÓN =====
-// modo: null | 'editar' | 'eliminar'
-const modoSeccion = { mensaje: null, foto: null, cancion: null, frase: null };
-
-// Checkboxes seleccionados para eliminar
-const seleccionados = { mensaje: new Set(), foto: new Set(), cancion: new Set(), frase: new Set() };
+// Modos editar por sección
+const modoEditarSeccion = { mensaje: false, foto: false, cancion: false, frase: false };
 
 // ===== CORAZONES MENÚ =====
+const seccionesConNuevo = { mensaje: false, foto: false, cancion: false, frase: false, plan: false };
+
 function mostrarCorazon(tipo) {
+  seccionesConNuevo[tipo] = true;
   localStorage.setItem(`heart-${tipo}`, 'true');
   const el = document.getElementById(`heart-${tipo}`);
   if (el) el.classList.remove('hidden');
 }
+
 function quitarCorazon(tipo) {
+  seccionesConNuevo[tipo] = false;
   localStorage.removeItem(`heart-${tipo}`);
   const el = document.getElementById(`heart-${tipo}`);
   if (el) el.classList.add('hidden');
 }
+
 function cargarCorazonesGuardados() {
   ['mensaje', 'foto', 'cancion', 'frase', 'plan'].forEach(tipo => {
     if (localStorage.getItem(`heart-${tipo}`) === 'true') mostrarCorazon(tipo);
   });
 }
 
-// ===== TÍTULOS =====
-const titulosNuevo  = { mensaje: "Nuevo mensaje", foto: "Nueva foto", cancion: "Nueva canción", frase: "Nueva frase" };
-const titulosEditar = { mensaje: "Editar mensaje", foto: "Reemplazar foto", cancion: "Editar canción", frase: "Editar frase" };
+// ===== TÍTULOS PERSONALIZADOS =====
+const titulosNuevo = {
+  mensaje: "Nuevo mensaje",
+  foto:    "Nueva foto",
+  cancion: "Nueva canción",
+  frase:   "Nueva frase"
+};
+const titulosEditar = {
+  mensaje: "Editar mensaje",
+  foto:    "Reemplazar foto",
+  cancion: "Editar canción",
+  frase:   "Editar frase"
+};
 
 // ===== ELEMENTOS =====
 const menuBtn           = document.getElementById('menuBtn');
@@ -85,18 +97,6 @@ const cancelarEliminar  = document.getElementById('cancelarEliminar');
 const aceptarEliminar   = document.getElementById('aceptarEliminar');
 const fotoPerfilHeader  = document.getElementById('fotoPerfilHeader');
 const btnPerfil         = document.getElementById('btnPerfil');
-
-// ===== SVGs REUTILIZABLES =====
-const lapizSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-  <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-  <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-</svg>`;
-
-const basureroSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-  <polyline points="3 6 5 6 21 6"/>
-  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-  <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-</svg>`;
 
 // ===== ONESIGNAL =====
 async function iniciarOneSignal() {
@@ -164,59 +164,6 @@ async function mostrarToastInApp(tipo, nombreUsuarioPareja) {
   mostrarToast(`${quien}: ${mensajesInApp[tipo] || "algo nuevo 💕"}`, "info");
 }
 
-// ===== TOAST CON DESHACER =====
-let deshacerTimeout = null;
-let deshacerDatos   = null; // { tipo, items: [{id, data}] }
-
-function mostrarToastDeshacer(tipo, items) {
-  // Cancelar cualquier eliminación pendiente anterior
-  if (deshacerTimeout) {
-    clearTimeout(deshacerTimeout);
-    // Eliminar los anteriores definitivamente si había pendientes
-    if (deshacerDatos) commitEliminar(deshacerDatos);
-  }
-  deshacerDatos = { tipo, items };
-
-  // Crear toast
-  let toastEl = document.getElementById('toast-deshacer');
-  if (!toastEl) {
-    toastEl = document.createElement('div');
-    toastEl.id = 'toast-deshacer';
-    toastEl.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] flex items-center gap-3 bg-gray-800 text-white text-sm px-5 py-3 rounded-xl shadow-lg transition-all duration-300';
-    document.body.appendChild(toastEl);
-  }
-  const n = items.length;
-  toastEl.innerHTML = `<span>${n > 1 ? `${n} elementos eliminados` : 'Eliminado'}</span>
-    <button id="btn-deshacer" class="font-bold text-pink-300 hover:text-pink-200 underline">Deshacer</button>`;
-  toastEl.classList.remove('opacity-0', 'pointer-events-none');
-  toastEl.classList.add('opacity-100');
-
-  document.getElementById('btn-deshacer').onclick = () => {
-    clearTimeout(deshacerTimeout);
-    deshacerDatos = null;
-    // Restaurar cards (re-render ya las muestra porque no se borraron de datosGlobal aún)
-    rerenderSeccion(tipo);
-    toastEl.classList.add('opacity-0', 'pointer-events-none');
-    mostrarToast('¡Restaurado!', 'exito');
-  };
-
-  deshacerTimeout = setTimeout(async () => {
-    toastEl.classList.add('opacity-0', 'pointer-events-none');
-    if (deshacerDatos) {
-      await commitEliminar(deshacerDatos);
-      deshacerDatos = null;
-    }
-  }, 4000);
-}
-
-async function commitEliminar({ tipo, items }) {
-  try {
-    for (const item of items) {
-      await deleteDoc(doc(db, "parejas", codigoPareja, "contenido", item.id));
-    }
-  } catch (e) { console.error("Error eliminando:", e); mostrarToast("Error al eliminar", "error"); }
-}
-
 // ===== SESIÓN =====
 setPersistence(auth, browserLocalPersistence).then(() => {
   onAuthStateChanged(auth, async (user) => {
@@ -259,7 +206,7 @@ setPersistence(auth, browserLocalPersistence).then(() => {
   });
 });
 
-// ===== MENÚ LATERAL =====
+// ===== MENÚ =====
 menuBtn.onclick = () => {
   sideMenu.classList.remove('-translate-x-full');
   overlay.classList.remove('hidden');
@@ -278,17 +225,27 @@ function actualizarMenuActivo(seccion) {
   });
 }
 
-// ===== RESETEAR MODO AL NAVEGAR =====
-function resetearModoSeccion(tipo) {
-  if (!modoSeccion[tipo]) return;
-  modoSeccion[tipo] = null;
-  seleccionados[tipo].clear();
-  ocultarBarraFlotante(tipo);
-  actualizarBotonesHeader(tipo);
-}
+// ===== SVG DEL LÁPIZ (reutilizable) =====
+const lapizSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+  <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+</svg>`;
 
-function resetearTodosModos() {
-  ['mensaje', 'foto', 'cancion', 'frase'].forEach(tipo => resetearModoSeccion(tipo));
+// ===== FIX 3: resetear modo editar al cambiar de sección — RESTAURA el SVG del lápiz =====
+function resetearTodosModoEditar() {
+  ['mensaje', 'foto', 'cancion', 'frase'].forEach(tipo => {
+    if (modoEditarSeccion[tipo]) {
+      modoEditarSeccion[tipo] = false;
+      const btnEditar = document.getElementById(`btnEditar${capitalizar(tipo)}`);
+      const btnNuevo  = document.getElementById(`btnNuevo${capitalizar(tipo)}`);
+      if (btnEditar) {
+        btnEditar.classList.add('bg-purple-100', 'text-purple-600');
+        btnEditar.classList.remove('bg-purple-500', 'text-white');
+        btnEditar.innerHTML = lapizSVG; // ← FIX 3: restaurar SVG
+      }
+      if (btnNuevo) btnNuevo.classList.remove('hidden');
+    }
+  });
 }
 
 document.querySelectorAll('.itemMenu').forEach(btn => {
@@ -298,7 +255,10 @@ document.querySelectorAll('.itemMenu').forEach(btn => {
     document.getElementById(seccion).classList.remove('hidden');
     seccionActiva = seccion;
     actualizarMenuActivo(seccion);
-    resetearTodosModos();
+
+    // FIX 3: resetear todos los modos editar al navegar
+    resetearTodosModoEditar();
+
     const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase', planes: 'plan' };
     if (tipoMap[seccion]) quitarCorazon(tipoMap[seccion]);
     if (seccion !== 'planes') resetearModoEditarPlanes();
@@ -306,134 +266,6 @@ document.querySelectorAll('.itemMenu').forEach(btn => {
     cerrarMenu();
   };
 });
-
-// ===== MENÚ DE TRES PUNTITOS =====
-// Cierra cualquier menú abierto al hacer clic fuera
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.menu-puntitos-container')) {
-    document.querySelectorAll('.menu-puntitos-dropdown').forEach(m => m.classList.add('hidden'));
-  }
-});
-
-window.toggleMenuPuntitos = (tipo) => {
-  const dropdown = document.getElementById(`dropdown-${tipo}`);
-  // cerrar otros
-  document.querySelectorAll('.menu-puntitos-dropdown').forEach(m => {
-    if (m.id !== `dropdown-${tipo}`) m.classList.add('hidden');
-  });
-  dropdown.classList.toggle('hidden');
-};
-
-window.elegirModo = (tipo, modo) => {
-  // Cerrar dropdown
-  document.getElementById(`dropdown-${tipo}`)?.classList.add('hidden');
-
-  if (modoSeccion[tipo] === modo) {
-    // Si ya estaba en ese modo, cancelar
-    resetearModoSeccion(tipo);
-    rerenderSeccion(tipo);
-    return;
-  }
-
-  modoSeccion[tipo] = modo;
-  seleccionados[tipo].clear();
-  actualizarBotonesHeader(tipo);
-  rerenderSeccion(tipo);
-
-  if (modo === 'eliminar') mostrarBarraFlotante(tipo);
-  else ocultarBarraFlotante(tipo);
-};
-
-window.cancelarModo = (tipo) => {
-  resetearModoSeccion(tipo);
-  rerenderSeccion(tipo);
-};
-
-// ===== ACTUALIZAR HEADER (botones ⋯ / Cancelar y +) =====
-function actualizarBotonesHeader(tipo) {
-  const btnNuevo    = document.getElementById(`btnNuevo${capitalizar(tipo)}`);
-  const btnPuntitos = document.getElementById(`btnPuntitos${capitalizar(tipo)}`);
-  const btnCancelar = document.getElementById(`btnCancelar${capitalizar(tipo)}`);
-
-  const enModo = modoSeccion[tipo] !== null;
-
-  if (btnNuevo)    btnNuevo.classList.toggle('hidden', enModo);
-  if (btnPuntitos) btnPuntitos.classList.toggle('hidden', enModo);
-  if (btnCancelar) btnCancelar.classList.toggle('hidden', !enModo);
-}
-
-// ===== BARRA FLOTANTE (modo eliminar) =====
-function mostrarBarraFlotante(tipo) {
-  let barra = document.getElementById(`barra-${tipo}`);
-  if (!barra) {
-    barra = document.createElement('div');
-    barra.id = `barra-${tipo}`;
-    barra.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white border border-red-200 shadow-xl rounded-2xl px-5 py-3 transition-all duration-300';
-    document.body.appendChild(barra);
-  }
-  actualizarBarraFlotante(tipo);
-  barra.classList.remove('hidden');
-}
-
-function ocultarBarraFlotante(tipo) {
-  const barra = document.getElementById(`barra-${tipo}`);
-  if (barra) barra.classList.add('hidden');
-}
-
-function actualizarBarraFlotante(tipo) {
-  const barra = document.getElementById(`barra-${tipo}`);
-  if (!barra) return;
-  const n = seleccionados[tipo].size;
-  barra.innerHTML = `
-    <span class="text-sm text-gray-500">${n} seleccionado${n !== 1 ? 's' : ''}</span>
-    <button onclick="solicitarEliminarSeleccionados('${tipo}')"
-      class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition
-        ${n > 0 ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}">
-      ${basureroSVG} Eliminar${n > 0 ? ` (${n})` : ''}
-    </button>`;
-}
-
-// ===== SOLICITAR ELIMINAR SELECCIONADOS =====
-window.solicitarEliminarSeleccionados = (tipo) => {
-  const n = seleccionados[tipo].size;
-  if (n === 0) return;
-
-  // Reusar modal de eliminar existente
-  const textoModal = document.querySelector('#modalEliminar p');
-  if (textoModal) textoModal.textContent = `¿Eliminar ${n} elemento${n !== 1 ? 's' : ''} seleccionado${n !== 1 ? 's' : ''}?`;
-
-  modalEliminar.classList.remove('hidden');
-  modalEliminar.classList.add('flex');
-
-  // Clonar botones para limpiar listeners anteriores
-  const nuevoAceptar  = aceptarEliminar.cloneNode(true);
-  const nuevoCancelar = cancelarEliminar.cloneNode(true);
-  aceptarEliminar.replaceWith(nuevoAceptar);
-  cancelarEliminar.replaceWith(nuevoCancelar);
-
-  nuevoCancelar.onclick = () => {
-    modalEliminar.classList.add('hidden');
-    modalEliminar.classList.remove('flex');
-  };
-
-  nuevoAceptar.onclick = async () => {
-    modalEliminar.classList.add('hidden');
-    modalEliminar.classList.remove('flex');
-
-    const ids    = [...seleccionados[tipo]];
-    const items  = datosGlobal.filter(d => ids.includes(d.id));
-
-    // Quitar del datosGlobal temporalmente (para que el re-render no las muestre)
-    datosGlobal = datosGlobal.filter(d => !ids.includes(d.id));
-    rerenderSeccion(tipo);
-
-    // Salir del modo eliminar
-    resetearModoSeccion(tipo);
-
-    // Mostrar toast con deshacer
-    mostrarToastDeshacer(tipo, items);
-  };
-};
 
 // ===== MODAL NUEVO =====
 let tipoActual = "";
@@ -504,7 +336,7 @@ editFile.addEventListener("change", async () => {
   if (f) { editPreviewImagen.src = await comprimirImagen(f); editPreviewImagen.classList.remove("hidden"); }
 });
 
-// ===== GUARDAR NUEVO =====
+// ===== GUARDAR =====
 guardar.onclick = async () => {
   let contenido = "";
   if (tipoActual === "mensaje" || tipoActual === "frase") {
@@ -535,7 +367,7 @@ guardar.onclick = async () => {
   }
 };
 
-// ===== MODAL EDITAR =====
+// ===== EDITAR =====
 function abrirModalEditar(d) {
   editTexto.classList.add('hidden');
   editCancionDiv.classList.add('hidden');
@@ -594,7 +426,7 @@ guardarEditar.onclick = async () => {
   } catch (error) { mostrarToast("Error al guardar", "error"); console.error(error); }
 };
 
-// ===== REACCIONAR (doble tap) =====
+// ===== REACCIONAR (doble tap solo para contenido ajeno, fuera de modo editar) =====
 async function toggleReaccion(d) {
   if (d.autorUid === miUid) { mostrarToast("No puedes reaccionar a tu propio contenido", "info"); return; }
   const ref = doc(db, "parejas", codigoPareja, "contenido", d.id);
@@ -604,7 +436,7 @@ async function toggleReaccion(d) {
 function agregarDobleTap(el, d) {
   let lastTap = 0;
   const handler = (e) => {
-    if (e.target.closest('.btn-ver-foto')) return;
+    if (e.target.closest('.btn-ver-foto') || e.target.closest('.btn-eliminar-card')) return;
     const now = Date.now();
     if (now - lastTap < 300) { lastTap = 0; if (d.autorUid !== miUid) toggleReaccion(d); }
     else lastTap = now;
@@ -613,313 +445,67 @@ function agregarDobleTap(el, d) {
   el.addEventListener("dblclick", handler);
 }
 
-// ===== HELPERS =====
+// ===== FIX 2: SVG BASURERO (reutilizable) =====
+const basureroSVG = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+  <polyline points="3 6 5 6 21 6"/>
+  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+  <path d="M10 11v6"/>
+  <path d="M14 11v6"/>
+  <path d="M9 6V4h6v2"/>
+</svg>`;
+
+// ===== MODO EDITAR POR SECCIÓN =====
+window.activarModoEditarSeccion = (tipo) => {
+  modoEditarSeccion[tipo] = !modoEditarSeccion[tipo];
+  const btnEditar = document.getElementById(`btnEditar${capitalizar(tipo)}`);
+  const btnNuevo  = document.getElementById(`btnNuevo${capitalizar(tipo)}`);
+  if (modoEditarSeccion[tipo]) {
+    btnEditar.classList.remove('bg-purple-100', 'text-purple-600');
+    btnEditar.classList.add('bg-purple-500', 'text-white');
+    btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
+    if (btnNuevo) btnNuevo.classList.add('hidden');
+  } else {
+    btnEditar.classList.add('bg-purple-100', 'text-purple-600');
+    btnEditar.classList.remove('bg-purple-500', 'text-white');
+    btnEditar.innerHTML = lapizSVG; // ← usa la constante
+    if (btnNuevo) btnNuevo.classList.remove('hidden');
+  }
+  rerenderSeccion(tipo);
+};
+
+// ===== ELIMINAR CARD INDIVIDUAL =====
+let pendienteEliminarId   = null;
+let pendienteEliminarTipo = null;
+
+window.solicitarEliminarCard = (id, tipo) => {
+  pendienteEliminarId   = id;
+  pendienteEliminarTipo = tipo;
+  modalEliminar.classList.remove('hidden');
+  modalEliminar.classList.add('flex');
+};
+
+cancelarEliminar.onclick = () => {
+  modalEliminar.classList.add('hidden');
+  modalEliminar.classList.remove('flex');
+  pendienteEliminarId = pendienteEliminarTipo = null;
+};
+
+aceptarEliminar.onclick = async () => {
+  if (!pendienteEliminarId) return;
+  const id = pendienteEliminarId;
+  modalEliminar.classList.add('hidden');
+  modalEliminar.classList.remove('flex');
+  try {
+    await deleteDoc(doc(db, "parejas", codigoPareja, "contenido", id));
+    mostrarToast("¡Eliminado!", "exito");
+  } catch (error) { mostrarToast("Error al eliminar", "error"); console.error(error); }
+  pendienteEliminarId = pendienteEliminarTipo = null;
+};
+
 function capitalizar(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
 
 function rerenderSeccion(tipo) {
   renderPorFecha(tipo, datosGlobal.filter(d => d.tipo === tipo));
-}
-
-function borderPorGenero(genero) {
-  return genero === "hombre" ? "border-2 border-blue-300" : "border-2 border-pink-300";
-}
-
-function heartSVG(d) {
-  if (!d.reaccion) return "";
-  const color = d.reaccion === "hombre" ? "#93c5fd" : "#f9a8d4";
-  return `<span class="absolute top-2 right-2 pointer-events-none">
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
-      fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-    </svg></span>`;
-}
-
-function ojitaSVG() {
-  return `<button class="btn-ver-foto absolute bottom-2 right-2 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shadow-md hover:bg-purple-700 transition">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-      fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg></button>`;
-}
-
-// ===== CREAR CARD =====
-function crearCardHTML(d, modo) {
-  const borde   = borderPorGenero(d.autorGenero);
-  const corazon = heartSVG(d);
-  const esMio   = d.autorUid === miUid;
-
-  // Modo eliminar: checkbox en cards propias, atenuado en ajenas
-  if (modo === 'eliminar') {
-    const opAjena     = !esMio ? 'opacity-40' : '';
-    const seleccionado = seleccionados[d.tipo]?.has(d.id);
-    const checkClass   = seleccionado
-      ? 'bg-purple-500 border-purple-500'
-      : 'bg-white border-gray-300';
-
-    const checkHTML = esMio
-      ? `<div class="checkbox-card absolute top-3 left-3 w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${checkClass}">
-          ${seleccionado ? `<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>` : ''}
-        </div>` : '';
-
-    if (d.tipo === "mensaje" || d.tipo === "frase") {
-      return `<div data-id="${d.id}" data-tipo="${d.tipo}" data-selectable="${esMio}"
-        class="bg-white shadow-lg rounded-xl p-5 pl-12 ${borde} relative transition-all duration-300 select-none ${opAjena} ${esMio ? 'cursor-pointer' : ''}">
-        ${checkHTML}
-        <p class="text-gray-700 text-lg break-all pr-8">"${d.contenido}"</p>
-        ${corazon}</div>`;
-    }
-    if (d.tipo === "foto") {
-      return `<div data-id="${d.id}" data-tipo="${d.tipo}" data-selectable="${esMio}"
-        class="bg-white shadow-lg rounded-xl p-3 pl-12 ${borde} relative transition-all duration-300 select-none ${opAjena} ${esMio ? 'cursor-pointer' : ''}">
-        ${checkHTML}
-        <div class="w-full h-48 overflow-hidden rounded-lg">
-          <img src="${d.contenido}" alt="Foto" class="w-full h-full object-cover">
-        </div>
-        ${corazon}</div>`;
-    }
-    if (d.tipo === "cancion") {
-      let desc = "", link = "";
-      try { const p = JSON.parse(d.contenido); desc = p.desc; link = p.link; } catch { link = d.contenido; }
-      return `<div data-id="${d.id}" data-tipo="${d.tipo}" data-selectable="${esMio}"
-        class="bg-white shadow-lg rounded-xl p-5 pl-12 ${borde} relative transition-all duration-300 select-none ${opAjena} ${esMio ? 'cursor-pointer' : ''}">
-        ${checkHTML}
-        ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
-        <div class="flex items-center justify-between">
-          <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
-          <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>
-        </div>
-        ${corazon}</div>`;
-    }
-  }
-
-  // Modo editar: cards propias clickeables, ajenas atenuadas
-  if (modo === 'editar') {
-    const opAjena     = !esMio ? 'opacity-40' : '';
-    const cursorEditar = esMio ? 'cursor-pointer hover:border-purple-400' : '';
-
-    if (d.tipo === "mensaje" || d.tipo === "frase") {
-      return `<div data-id="${d.id}" data-editar="${esMio}"
-        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
-        <p class="text-gray-700 text-lg break-all pr-8">"${d.contenido}"</p>
-        ${corazon}</div>`;
-    }
-    if (d.tipo === "foto") {
-      return `<div data-id="${d.id}" data-editar="${esMio}"
-        class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
-        <div class="w-full h-48 overflow-hidden rounded-lg">
-          <img src="${d.contenido}" alt="Foto" class="w-full h-full object-cover">
-        </div>
-        ${corazon}</div>`;
-    }
-    if (d.tipo === "cancion") {
-      let desc = "", link = "";
-      try { const p = JSON.parse(d.contenido); desc = p.desc; link = p.link; } catch { link = d.contenido; }
-      return `<div data-id="${d.id}" data-editar="${esMio}"
-        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
-        ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
-        <div class="flex items-center justify-between">
-          <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
-          <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>
-        </div>
-        ${corazon}</div>`;
-    }
-  }
-
-  // ===== MODO NORMAL =====
-  if (d.tipo === "mensaje" || d.tipo === "frase") {
-    return `<div data-id="${d.id}"
-      class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
-      <p class="text-gray-700 text-lg break-all pr-8">"${d.contenido}"</p>
-      ${corazon}</div>`;
-  }
-  if (d.tipo === "foto") {
-    return `<div data-id="${d.id}"
-      class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none">
-      <div class="w-full h-48 overflow-hidden rounded-lg">
-        <img src="${d.contenido}" alt="Foto" class="w-full h-full object-cover">
-      </div>
-      ${corazon}${ojitaSVG()}</div>`;
-  }
-  if (d.tipo === "cancion") {
-    let desc = "", link = "";
-    try { const p = JSON.parse(d.contenido); desc = p.desc; link = p.link; } catch { link = d.contenido; }
-    return `<div data-id="${d.id}"
-      class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
-      ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
-      <div class="flex items-center justify-between">
-        <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm truncate max-w-[70%]">${link}</a>
-        <a href="${link}" target="_blank" class="ml-2 px-3 py-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm rounded-lg transition whitespace-nowrap">Escuchar ▶</a>
-      </div>
-      ${corazon}</div>`;
-  }
-
-  return "";
-}
-
-// ===== RENDER POR FECHA =====
-function renderPorFecha(tipo, datos) {
-  const contenedorMap = {
-    mensaje: "#mensajesContainer",
-    foto:    "#fotosContainer",
-    cancion: "#cancionesContainer",
-    frase:   "#frasesContainer"
-  };
-  const cont = document.querySelector(contenedorMap[tipo]);
-  if (!cont) return;
-
-  const modo   = modoSeccion[tipo];
-  const grupos = {};
-  datos.forEach(d => {
-    const g = obtenerGrupoFecha(d.fecha);
-    if (!grupos[g]) grupos[g] = [];
-    grupos[g].push(d);
-  });
-
-  if (Object.keys(grupos).length === 0) {
-    const vacios = {
-      mensaje: "Aún no hay mensajes... ¡manda el primero! 💬",
-      foto:    "Aún no hay fotos... ¡sube un recuerdo! 📸",
-      cancion: "Aún no hay canciones... ¿cuál es la de ustedes? 🎵",
-      frase:   "Aún no hay frases... ¡exprésate! 💭"
-    };
-    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">${vacios[tipo]}</p>`;
-    return;
-  }
-
-  let html = "";
-  Object.keys(grupos).forEach((grupo, index) => {
-    const id    = `grupo-${tipo}-${index}`;
-    const esHoy = grupo === "Hoy" || gruposAbiertos[id];
-    html += `<div class="mt-4">
-      <div onclick="toggleGrupo('${id}', this)" class="flex justify-between items-center cursor-pointer">
-        <p class="text-sm text-gray-500">${grupo}</p>
-        <span class="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-          </svg></span>
-      </div>
-      <div id="${id}" class="space-y-3 overflow-hidden transition-all duration-500 ease-in-out ${esHoy ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}">
-        ${grupos[grupo].map(d => crearCardHTML(d, modo)).join("")}
-      </div></div>`;
-  });
-
-  cont.innerHTML = html;
-
-  // ===== ASIGNAR EVENTOS =====
-  datos.forEach(d => {
-    const cardEl = cont.querySelector(`[data-id="${d.id}"]`);
-    if (!cardEl) return;
-
-    if (modo === 'eliminar') {
-      if (d.autorUid === miUid) {
-        cardEl.addEventListener('click', () => {
-          if (seleccionados[d.tipo].has(d.id)) seleccionados[d.tipo].delete(d.id);
-          else seleccionados[d.tipo].add(d.id);
-          rerenderSeccion(d.tipo);
-          actualizarBarraFlotante(d.tipo);
-        });
-      }
-    } else if (modo === 'editar') {
-      if (d.autorUid === miUid) {
-        cardEl.addEventListener('click', () => abrirModalEditar(d));
-      }
-    } else {
-      // Modo normal
-      agregarDobleTap(cardEl, d);
-      if (d.tipo === "foto") {
-        const ojito = cardEl.querySelector(".btn-ver-foto");
-        if (ojito) ojito.addEventListener("click", e => { e.stopPropagation(); abrirFoto(d.contenido); });
-      }
-    }
-  });
-}
-
-// ===== TOGGLE GRUPO =====
-window.toggleGrupo = (id, el) => {
-  const contenedor = document.getElementById(id);
-  const flecha     = el.querySelector("svg");
-  const abierto    = !contenedor.classList.contains("max-h-0");
-  if (abierto) {
-    contenedor.classList.remove("max-h-[2000px]", "opacity-100");
-    contenedor.classList.add("max-h-0", "opacity-0");
-    if (flecha) flecha.style.transform = "rotate(-90deg)";
-    gruposAbiertos[id] = false;
-  } else {
-    contenedor.classList.remove("max-h-0", "opacity-0");
-    contenedor.classList.add("max-h-[2000px]", "opacity-100");
-    if (flecha) flecha.style.transform = "rotate(0deg)";
-    gruposAbiertos[id] = true;
-  }
-};
-
-// ===== FECHAS =====
-function obtenerGrupoFecha(fecha) {
-  const f   = fecha?.toDate ? fecha.toDate() : new Date(fecha);
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  const fi  = new Date(f); fi.setHours(0, 0, 0, 0);
-  const diff = Math.floor((hoy - fi) / (1000 * 60 * 60 * 24));
-  if (diff === 0) return "Hoy";
-  if (diff === 1) return "Ayer";
-  return f.toLocaleDateString('es-MX');
-}
-
-function formatearFechaCorta(fecha) {
-  const f = fecha?.toDate ? fecha.toDate() : new Date(fecha);
-  return f.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
-}
-
-function formatearFechaPlan(fechaPlan) {
-  try {
-    const [y, m, day] = fechaPlan.split('-');
-    const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(day));
-    return dt.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
-  } catch { return fechaPlan; }
-}
-
-// ===== RENDER INICIO =====
-function renderInicio(datos) {
-  const setHTML   = (sel, html) => document.querySelectorAll(sel).forEach(el => el.innerHTML = html);
-  const mensajes  = datos.filter(d => d.tipo === "mensaje").slice(0, 3);
-  const fotos     = datos.filter(d => d.tipo === "foto").slice(0, 4);
-  const canciones = datos.filter(d => d.tipo === "cancion").slice(0, 4);
-  const frases    = datos.filter(d => d.tipo === "frase").slice(0, 3);
-
-  setHTML(".listaMensajes", mensajes.map(m =>
-    `<li class="text-gray-700 text-sm mb-1 break-all">"${m.contenido}" - ${formatearFechaCorta(m.fecha)}</li>`
-  ).join(""));
-
-  document.querySelectorAll(".listaFotos").forEach(el => {
-    el.innerHTML = fotos.map((f, i) =>
-      `<div class="w-full h-32 overflow-hidden rounded-lg cursor-pointer" data-foto-idx="${i}">
-        <img src="${f.contenido}" alt="Foto" class="w-full h-full object-cover hover:opacity-90 transition">
-      </div>`
-    ).join("");
-    el.querySelectorAll("[data-foto-idx]").forEach((div, i) =>
-      div.addEventListener("click", () => abrirFoto(fotos[i].contenido))
-    );
-  });
-
-  setHTML(".listaCanciones", canciones.map(c => {
-    let desc = "", link = "";
-    try { const p = JSON.parse(c.contenido); desc = p.desc; link = p.link; } catch { link = c.contenido; }
-    return `<li class="mb-2">${desc ? `<p class="text-gray-600 text-sm break-all">"${desc}"</p>` : ""}
-      <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm">
-        ${link.length > 35 ? link.substring(0, 35) + "..." : link}
-      </a></li>`;
-  }).join(""));
-
-  setHTML(".listaFrases", frases.map(f =>
-    `<li class="text-gray-700 text-sm mb-1 break-all">"${f.contenido}"</li>`
-  ).join(""));
-}
-
-// ===== RENDER TODO =====
-function renderTodo(datos) {
-  ["mensaje", "foto", "cancion", "frase"].forEach(tipo =>
-    renderPorFecha(tipo, datos.filter(d => d.tipo === tipo))
-  );
-  renderInicio(datos);
 }
 
 // ===== TIEMPO REAL =====
@@ -935,10 +521,6 @@ function iniciarTiempoReal() {
       const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
       return fb - fa;
     });
-
-    // Si hay items pendientes de deshacer, preservarlos fuera de datosGlobal
-    const idsPendientes = deshacerDatos ? new Set(deshacerDatos.items.map(i => i.id)) : new Set();
-
     if (idsConocidos === null) {
       idsConocidos = new Set(datos.map(d => d.id));
       const ultimaVisita = parseInt(localStorage.getItem('ultimaVisita') || '0');
@@ -965,21 +547,239 @@ function iniciarTiempoReal() {
         idsConocidos.add(d.id);
       }
     }
-
-    // Combinar datos del servidor con los pendientes de deshacer
-    const datosFiltrados = datos.filter(d => !idsPendientes.has(d.id));
-    const itemsPendientes = deshacerDatos ? deshacerDatos.items.map(i => ({ id: i.id, ...i.data || i })) : [];
-    datosGlobal = [...datosFiltrados, ...deshacerDatos?.items || []].sort((a, b) => {
-      const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
-      const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
-      return fb - fa;
-    });
-
-    // No re-renderizar items que están en modo "pendiente de deshacer"
-    const datosParaRender = datos.filter(d => !idsPendientes.has(d.id));
-    datosGlobal = datosParaRender;
-    renderTodo(datosParaRender);
+    datosGlobal = datos;
+    renderTodo(datos);
   });
+}
+
+// ===== FECHAS =====
+function obtenerGrupoFecha(fecha) {
+  const f = fecha?.toDate ? fecha.toDate() : new Date(fecha);
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const fi = new Date(f); fi.setHours(0, 0, 0, 0);
+  const diff = Math.floor((hoy - fi) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return "Hoy";
+  if (diff === 1) return "Ayer";
+  return f.toLocaleDateString('es-MX');
+}
+
+function formatearFechaCorta(fecha) {
+  const f = fecha?.toDate ? fecha.toDate() : new Date(fecha);
+  return f.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+}
+
+function formatearFechaPlan(fechaPlan) {
+  try {
+    const [y, m, day] = fechaPlan.split('-');
+    const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(day));
+    return dt.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  } catch { return fechaPlan; }
+}
+
+// ===== HELPERS VISUALES =====
+function borderPorGenero(genero) {
+  return genero === "hombre" ? "border-2 border-blue-300" : "border-2 border-pink-300";
+}
+
+function heartSVG(d) {
+  if (!d.reaccion) return "";
+  const color = d.reaccion === "hombre" ? "#93c5fd" : "#f9a8d4";
+  return `<span class="absolute top-2 right-2 pointer-events-none">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+      fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg></span>`;
+}
+
+function ojitaSVG() {
+  return `<button class="btn-ver-foto absolute bottom-2 right-2 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shadow-md hover:bg-purple-700 transition">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg></button>`;
+}
+
+// ===== FIX 1 y 2: BOTÓN BASURERO — sin texto, icono circulito rojo =====
+function btnBasureroHTML(id, tipo) {
+  return `<button class="btn-eliminar-card absolute bottom-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-400 hover:bg-red-200 transition" data-id="${id}" data-tipo="${tipo}">
+    ${basureroSVG}
+  </button>`;
+}
+
+// ===== CREAR CARD =====
+function crearCardHTML(d, enModoEditar) {
+  const borde   = borderPorGenero(d.autorGenero);
+  const corazon = heartSVG(d);
+  const esMio   = d.autorUid === miUid;
+  const opAjena = (enModoEditar && !esMio) ? "opacity-40" : "";
+
+  const cursorEditar = (enModoEditar && esMio) ? 'cursor-pointer hover:border-purple-400' : '';
+  const clickEditar  = (enModoEditar && esMio) ? `data-editar="true"` : '';
+
+  // FIX 1 y 2: basurero circular sin texto
+  const btnEliminar = (enModoEditar && esMio) ? btnBasureroHTML(d.id, d.tipo) : "";
+
+  if (d.tipo === "mensaje" || d.tipo === "frase") {
+    return `<div data-id="${d.id}" ${clickEditar}
+      class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
+      <p class="text-gray-700 text-lg break-all pr-8">"${d.contenido}"</p>
+      ${corazon}${btnEliminar}</div>`;
+  }
+
+  if (d.tipo === "foto") {
+    return `<div data-id="${d.id}" ${clickEditar}
+      class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
+      <div class="w-full h-48 overflow-hidden rounded-lg">
+        <img src="${d.contenido}" alt="Foto" class="w-full h-full object-cover">
+      </div>
+      ${corazon}
+      ${enModoEditar ? "" : ojitaSVG()}
+      ${btnEliminar}</div>`;
+  }
+
+  if (d.tipo === "cancion") {
+    let desc = "", link = "";
+    try { const p = JSON.parse(d.contenido); desc = p.desc; link = p.link; } catch { link = d.contenido; }
+
+    // FIX 1: en modo editar, pb-14 da espacio para que el basurero NO tape el botón Escuchar
+    if (enModoEditar) {
+      return `<div data-id="${d.id}" ${esMio ? clickEditar : ''}
+        class="bg-white shadow-lg rounded-xl p-5 pb-14 ${borde} relative transition-all duration-300 select-none ${opAjena} ${esMio ? cursorEditar : ''}">
+        ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
+        <div class="flex items-center justify-between">
+          <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
+          <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>
+        </div>
+        ${corazon}${btnEliminar}</div>`;
+    }
+
+    // Modo normal: links y botón activos
+    return `<div data-id="${d.id}"
+      class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
+      ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
+      <div class="flex items-center justify-between">
+        <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm truncate max-w-[70%]">${link}</a>
+        <a href="${link}" target="_blank" class="ml-2 px-3 py-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm rounded-lg transition whitespace-nowrap">Escuchar ▶</a>
+      </div>
+      ${corazon}</div>`;
+  }
+
+  return "";
+}
+
+// ===== RENDER POR GRUPOS =====
+function renderPorFecha(tipo, datos) {
+  const contenedorMap = { mensaje: "#mensajesContainer", foto: "#fotosContainer", cancion: "#cancionesContainer", frase: "#frasesContainer" };
+  const cont = document.querySelector(contenedorMap[tipo]);
+  if (!cont) return;
+
+  const enModoEditar = modoEditarSeccion[tipo];
+  const grupos = {};
+  datos.forEach(d => {
+    const g = obtenerGrupoFecha(d.fecha);
+    if (!grupos[g]) grupos[g] = [];
+    grupos[g].push(d);
+  });
+
+  if (Object.keys(grupos).length === 0) {
+    const vacios = { mensaje: "Aún no hay mensajes... ¡manda el primero! 💬", foto: "Aún no hay fotos... ¡sube un recuerdo! 📸", cancion: "Aún no hay canciones... ¿cuál es la de ustedes? 🎵", frase: "Aún no hay frases... ¡exprésate! 💭" };
+    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">${vacios[tipo]}</p>`;
+    return;
+  }
+
+  let html = "";
+  Object.keys(grupos).forEach((grupo, index) => {
+    const id    = `grupo-${tipo}-${index}`;
+    const esHoy = grupo === "Hoy" || gruposAbiertos[id];
+    html += `<div class="mt-4">
+      <div onclick="toggleGrupo('${id}', this)" class="flex justify-between items-center cursor-pointer">
+        <p class="text-sm text-gray-500">${grupo}</p>
+        <span class="flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg></span>
+      </div>
+      <div id="${id}" class="space-y-3 overflow-hidden transition-all duration-500 ease-in-out ${esHoy ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}">
+        ${grupos[grupo].map(d => crearCardHTML(d, enModoEditar)).join("")}
+      </div></div>`;
+  });
+
+  cont.innerHTML = html;
+
+  // Asignar eventos a las cards
+  datos.forEach(d => {
+    const cardEl = cont.querySelector(`[data-id="${d.id}"]`);
+    if (!cardEl) return;
+
+    if (enModoEditar) {
+      if (d.autorUid === miUid) {
+        cardEl.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-eliminar-card')) return;
+          abrirModalEditar(d);
+        });
+        const btnEl = cardEl.querySelector('.btn-eliminar-card');
+        if (btnEl) btnEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.solicitarEliminarCard(d.id, d.tipo);
+        });
+      }
+    } else {
+      agregarDobleTap(cardEl, d);
+      if (d.tipo === "foto") {
+        const ojito = cardEl.querySelector(".btn-ver-foto");
+        if (ojito) ojito.addEventListener("click", e => { e.stopPropagation(); abrirFoto(d.contenido); });
+      }
+    }
+  });
+}
+
+// ===== TOGGLE GRUPO =====
+window.toggleGrupo = (id, el) => {
+  const contenedor = document.getElementById(id);
+  const flecha = el.querySelector("svg");
+  const abierto = !contenedor.classList.contains("max-h-0");
+  if (abierto) {
+    contenedor.classList.remove("max-h-[2000px]", "opacity-100");
+    contenedor.classList.add("max-h-0", "opacity-0");
+    if (flecha) flecha.style.transform = "rotate(-90deg)";
+    gruposAbiertos[id] = false;
+  } else {
+    contenedor.classList.remove("max-h-0", "opacity-0");
+    contenedor.classList.add("max-h-[2000px]", "opacity-100");
+    if (flecha) flecha.style.transform = "rotate(0deg)";
+    gruposAbiertos[id] = true;
+  }
+};
+
+// ===== RENDER INICIO =====
+function renderInicio(datos) {
+  const setHTML = (sel, html) => document.querySelectorAll(sel).forEach(el => el.innerHTML = html);
+  const mensajes  = datos.filter(d => d.tipo === "mensaje").slice(0, 3);
+  const fotos     = datos.filter(d => d.tipo === "foto").slice(0, 4);
+  const canciones = datos.filter(d => d.tipo === "cancion").slice(0, 4);
+  const frases    = datos.filter(d => d.tipo === "frase").slice(0, 3);
+
+  setHTML(".listaMensajes", mensajes.map(m => `<li class="text-gray-700 text-sm mb-1 break-all">"${m.contenido}" - ${formatearFechaCorta(m.fecha)}</li>`).join(""));
+
+  document.querySelectorAll(".listaFotos").forEach(el => {
+    el.innerHTML = fotos.map((f, i) => `<div class="w-full h-32 overflow-hidden rounded-lg cursor-pointer" data-foto-idx="${i}"><img src="${f.contenido}" alt="Foto" class="w-full h-full object-cover hover:opacity-90 transition"></div>`).join("");
+    el.querySelectorAll("[data-foto-idx]").forEach((div, i) => div.addEventListener("click", () => abrirFoto(fotos[i].contenido)));
+  });
+
+  setHTML(".listaCanciones", canciones.map(c => {
+    let desc = "", link = "";
+    try { const p = JSON.parse(c.contenido); desc = p.desc; link = p.link; } catch { link = c.contenido; }
+    return `<li class="mb-2">${desc ? `<p class="text-gray-600 text-sm break-all">"${desc}"</p>` : ""}<a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm">${link.length > 35 ? link.substring(0, 35) + "..." : link}</a></li>`;
+  }).join(""));
+
+  setHTML(".listaFrases", frases.map(f => `<li class="text-gray-700 text-sm mb-1 break-all">"${f.contenido}"</li>`).join(""));
+}
+
+// ===== RENDER TODO =====
+function renderTodo(datos) {
+  ["mensaje", "foto", "cancion", "frase"].forEach(tipo => renderPorFecha(tipo, datos.filter(d => d.tipo === tipo)));
+  renderInicio(datos);
 }
 
 // ===== PLANES =====
@@ -1011,10 +811,7 @@ function resetearModoEditarPlanes() {
 document.querySelectorAll('.tabPlan').forEach(btn => {
   btn.onclick = () => {
     tabPlanActual = btn.dataset.tab;
-    document.querySelectorAll('.tabPlan').forEach(t => {
-      t.classList.remove('text-purple-600', 'border-purple-500');
-      t.classList.add('text-gray-400', 'border-transparent');
-    });
+    document.querySelectorAll('.tabPlan').forEach(t => { t.classList.remove('text-purple-600', 'border-purple-500'); t.classList.add('text-gray-400', 'border-transparent'); });
     btn.classList.remove('text-gray-400', 'border-transparent');
     btn.classList.add('text-purple-600', 'border-purple-500');
     resetearModoEditarPlanes();
@@ -1024,7 +821,7 @@ document.querySelectorAll('.tabPlan').forEach(btn => {
 
 window.activarModoEditarPlanes = () => {
   modoEditarPlanes = !modoEditarPlanes;
-  const btn      = document.getElementById('btnEditarPlan');
+  const btn = document.getElementById('btnEditarPlan');
   const btnNuevo = document.getElementById('btnNuevoPlan');
   if (modoEditarPlanes) {
     btn.classList.remove('bg-purple-100', 'text-purple-600');
@@ -1042,13 +839,13 @@ window.activarModoEditarPlanes = () => {
 
 window.abrirModalPlan = (d = null) => {
   planEditandoId = d ? d.id : null;
-  modalPlanTitulo.textContent    = d ? 'Editar' : 'Nuevo';
-  inputPlanTexto.value           = d ? d.texto : '';
-  guardarPlan.textContent        = d ? 'Aceptar' : 'Enviar';
+  modalPlanTitulo.textContent = d ? 'Editar' : 'Nuevo';
+  inputPlanTexto.value = d ? d.texto : '';
+  guardarPlan.textContent = d ? 'Aceptar' : 'Enviar';
   const tab = d ? d.tab : tabPlanActual;
-  labelPlanFecha.textContent     = tab === 'cita' ? 'Fecha de la cita (opcional)' : 'Fecha del plan (opcional)';
-  inputPlanFecha.type            = 'date';
-  inputPlanFecha.value           = d?.fechaPlan || '';
+  labelPlanFecha.textContent = tab === 'cita' ? 'Fecha de la cita (opcional)' : 'Fecha del plan (opcional)';
+  inputPlanFecha.type = 'date';
+  inputPlanFecha.value = d?.fechaPlan || '';
   modalPlan.classList.remove('hidden');
   modalPlan.classList.add('flex');
   setTimeout(() => { modalPlan.classList.remove('opacity-0'); modalPlan.classList.add('opacity-100'); }, 10);
@@ -1062,23 +859,15 @@ function cerrarModalPlan() {
 cancelarPlan.onclick = cerrarModalPlan;
 
 guardarPlan.onclick = async () => {
-  const texto     = inputPlanTexto.value.trim();
-  const fechaPlan = inputPlanFecha.value.trim();
+  const texto = inputPlanTexto.value.trim();
   if (!texto) return mostrarToast('Escribe algo primero', 'error');
+  const fechaPlan = inputPlanFecha.value.trim();
   if (planEditandoId) {
-    try {
-      await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', planEditandoId), { texto, fechaPlan });
-      mostrarToast('¡Editado!', 'exito');
-      cerrarModalPlan();
-    } catch (e) { mostrarToast('Error al editar', 'error'); console.error(e); }
+    try { await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', planEditandoId), { texto, fechaPlan }); mostrarToast('¡Editado!', 'exito'); cerrarModalPlan(); }
+    catch (e) { mostrarToast('Error al editar', 'error'); console.error(e); }
   } else {
-    try {
-      await addDoc(collection(db, 'parejas', codigoPareja, 'planes'), {
-        texto, fechaPlan, tab: tabPlanActual, fecha: new Date(), autorUid: miUid, completado: false
-      });
-      mostrarToast('¡Guardado!', 'exito');
-      cerrarModalPlan();
-    } catch (e) { mostrarToast('Error al guardar', 'error'); console.error(e); }
+    try { await addDoc(collection(db, 'parejas', codigoPareja, 'planes'), { texto, fechaPlan, tab: tabPlanActual, fecha: new Date(), autorUid: miUid, completado: false }); mostrarToast('¡Guardado!', 'exito'); cerrarModalPlan(); }
+    catch (e) { mostrarToast('Error al guardar', 'error'); console.error(e); }
   }
 };
 
@@ -1142,10 +931,7 @@ function _renderPlanesHTML() {
   const datos = (renderPlanes._datos || []).filter(d => d.tab === tabPlanActual);
 
   if (datos.length === 0) {
-    const vaciosPlan = {
-      cita: "Aún no hay citas planeadas... ¡propón una! 🗓️",
-      plan: "Aún no hay planes... ¡qué se les ocurre! 💡"
-    };
+    const vaciosPlan = { cita: "Aún no hay citas planeadas... ¡propón una! 🗓️", plan: "Aún no hay planes... ¡qué se les ocurre! 💡" };
     cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">${vaciosPlan[tabPlanActual]}</p>`;
     return;
   }
@@ -1158,20 +944,21 @@ function _renderPlanesHTML() {
     }
     const cardClick  = modoEditarPlanes ? `onclick='abrirModalPlan(${JSON.stringify(d).replace(/'/g, "&#39;")})'` : '';
     const cursorEdit = modoEditarPlanes ? 'cursor-pointer hover:border-purple-600' : '';
-    const btnElim    = modoEditarPlanes
+
+    // FIX 2: basurero en planes también
+    const btnElim = modoEditarPlanes
       ? `<button onclick="event.stopPropagation(); eliminarPlan('${d.id}', '${d.tab}')"
           class="absolute bottom-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-400 hover:bg-red-200 transition">
           ${basureroSVG}
-        </button>` : '';
+        </button>`
+      : '';
+
     const btnCirculo = !modoEditarPlanes ? (
       !d.completado
-        ? `<button onclick="marcarCompletado('${d.id}')" title="Marcar como completado"
-            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 hover:bg-purple-100 hover:border-purple-500 transition flex items-center justify-center"></button>`
-        : `<button onclick="desmarcarCompletado('${d.id}', '${d.tab}')" title="Desmarcar"
-            class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-green-400 bg-green-100 hover:bg-green-200 transition flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-            </svg></button>`
+        ? `<button onclick="marcarCompletado('${d.id}')" title="Marcar como completado" class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-purple-300 hover:bg-purple-100 hover:border-purple-500 transition flex items-center justify-center"></button>`
+        : `<button onclick="desmarcarCompletado('${d.id}', '${d.tab}')" title="Desmarcar" class="absolute top-3 right-3 w-7 h-7 rounded-full border-2 border-green-400 bg-green-100 hover:bg-green-200 transition flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </button>`
     ) : '';
 
     return `<div ${cardClick} class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative transition-all ${d.completado ? 'opacity-60' : ''} ${cursorEdit}">
