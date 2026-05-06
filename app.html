@@ -13,10 +13,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Daily Love">
   <link rel="apple-touch-icon" href="Daily L.png">
-
-  <!-- ONESIGNAL -->
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-
+  
 <style>
   @keyframes rebote {
     0%   { transform: scale(1); }
@@ -33,7 +31,7 @@
   }
   .corazon-menu { animation: latido 0.8s ease-in-out infinite; }
 
-  /* CAMBIO 1: ítem activo del menú en morado */
+  /* Ítem activo del menú — morado claro */
   .itemMenu.activo {
     background-color: #ede9fe;
     color: #7c3aed;
@@ -48,20 +46,11 @@
   <button id="menuBtn" class="px-2 py-1 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200">
     &#9776;
   </button>
-
-  <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">
-    Daily Love
-  </h1>
-
+  <h1 class="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-pink-600">Daily Love</h1>
   <div class="ml-auto flex items-center gap-3">
-    <div class="text-gray-700 font-semibold hidden sm:block">
-      Hola, <span id="userName"></span> ❤️
-    </div>
-    <button id="btnPerfil"
-      class="w-10 h-10 rounded-full overflow-hidden border-2 border-pink-400 hover:scale-105 transition">
-      <img id="fotoPerfilHeader"
-        src="https://ui-avatars.com/api/?name=User&background=EC4899&color=fff"
-        class="w-full h-full object-cover">
+    <div class="text-gray-700 font-semibold hidden sm:block">Hola, <span id="userName"></span> ❤️</div>
+    <button id="btnPerfil" class="w-10 h-10 rounded-full overflow-hidden border-2 border-pink-400 hover:scale-105 transition">
+      <img id="fotoPerfilHeader" src="https://ui-avatars.com/api/?name=User&background=EC4899&color=fff" class="w-full h-full object-cover">
     </button>
   </div>
 </header>
@@ -74,35 +63,37 @@
   class="fixed top-0 left-0 h-full w-64 bg-white shadow-md transform -translate-x-full transition-transform duration-300 z-50 p-6">
   <h2 class="text-xl font-bold text-pink-600 mb-6">Menú</h2>
   <ul class="flex flex-col gap-3">
-    <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700" data-section="inicio">Inicio</button></li>
     <li>
-      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 flex items-center justify-between" data-section="mensajes">
+      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors" data-section="inicio">Inicio</button>
+    </li>
+    <li>
+      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="mensajes">
         Mensajes
         <span id="heart-mensaje" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
     </li>
     <li>
-      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 flex items-center justify-between" data-section="fotos">
+      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="fotos">
         Fotos
         <span id="heart-foto" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
     </li>
     <li>
-      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 flex items-center justify-between" data-section="canciones">
+      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="canciones">
         Canciones
         <span id="heart-cancion" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
     </li>
     <li>
-      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 flex items-center justify-between" data-section="frases">
+      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="frases">
         Frases
         <span id="heart-frase" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
     </li>
-    <!-- CAMBIO 4: separador más visible y morado -->
-    <li><hr class="my-2 border-purple-300 border-2 rounded"></li>
+    <!-- Separador morado más visible -->
+    <li><hr class="my-2 border-[2px] border-purple-200 rounded-full"></li>
     <li>
-      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 flex items-center justify-between" data-section="planes">
+      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="planes">
         Extras
         <span id="heart-plan" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
@@ -114,7 +105,7 @@
 <div id="modal"
   class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 opacity-0 transition-opacity duration-300 p-4">
   <div class="bg-white p-6 rounded-lg w-full max-w-md">
-    <!-- CAMBIO 2: título personalizado en morado -->
+    <!-- Título dinámico en morado -->
     <h3 id="modalNuevoTitulo" class="text-lg font-bold text-purple-600 mb-4">Nuevo contenido</h3>
     <textarea id="inputTexto" class="w-full border rounded p-3 mb-3 hidden" placeholder="Escribe algo..."></textarea>
     <div id="inputCancionDiv" class="hidden mb-3 flex flex-col gap-3">
@@ -124,10 +115,8 @@
     <input type="file" id="inputFile" class="w-full border rounded p-3 mb-3 hidden" accept="image/*">
     <img id="previewImagen" class="hidden mb-3 rounded max-h-40 mx-auto object-contain">
     <div class="flex gap-3 justify-center mt-2">
-      <button id="cancelar"
-        class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
-      <button id="guardar"
-        class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Enviar</button>
+      <button id="cancelar" class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
+      <button id="guardar" class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Enviar</button>
     </div>
   </div>
 </div>
@@ -145,24 +134,20 @@
     <input type="file" id="editFile" class="w-full border rounded p-3 mb-3 hidden" accept="image/*">
     <img id="editPreviewImagen" class="hidden mb-3 rounded max-h-40 mx-auto object-contain">
     <div class="flex gap-3 justify-center mt-2">
-      <button id="cancelarEditar"
-        class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
-      <button id="guardarEditar"
-        class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Aceptar</button>
+      <button id="cancelarEditar" class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
+      <button id="guardarEditar" class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Aceptar</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL CONFIRMAR ELIMINAR (contenido general: mensajes, fotos, etc.) -->
-<div id="modalConfirmarEliminarCard"
+<!-- MODAL CONFIRMAR ELIMINAR -->
+<div id="modalEliminar"
   class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
   <div class="bg-white p-6 rounded-lg w-full max-w-sm text-center">
-    <p class="text-gray-700 text-base mb-6">¿Estás seguro de eliminar este contenido?</p>
+    <p class="text-gray-700 text-base mb-6">¿Estás seguro de eliminar el contenido seleccionado?</p>
     <div class="flex gap-3 justify-center mt-2">
-      <button id="cancelarEliminarCard"
-        class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
-      <button id="aceptarEliminarCard"
-        class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Eliminar</button>
+      <button id="cancelarEliminar" class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
+      <button id="aceptarEliminar" class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Aceptar</button>
     </div>
   </div>
 </div>
@@ -171,13 +156,10 @@
 <div id="modalFoto"
   class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg p-4 max-w-lg w-full relative">
-    <button id="btnCerrarFoto"
-      class="absolute top-2 right-2 w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-white hover:bg-purple-700 transition text-sm">✕</button>
+    <button id="btnCerrarFoto" class="absolute top-2 right-2 w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-white hover:bg-purple-700 transition text-sm">✕</button>
     <img id="imagenGrande" src="" alt="Foto" class="w-full max-h-[70vh] object-contain rounded mb-4">
     <div class="flex justify-center">
-      <a id="btnDescargar" download class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">
-        ⬇ Descargar
-      </a>
+      <a id="btnDescargar" download class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition">⬇ Descargar</a>
     </div>
   </div>
 </div>
@@ -191,10 +173,8 @@
     <label id="labelPlanFecha" class="text-sm text-gray-500 mb-1 block">Fecha (opcional)</label>
     <input id="inputPlanFecha" class="w-full border rounded p-3 mb-3" placeholder="Fecha (opcional)">
     <div class="flex gap-3 justify-center mt-2">
-      <button id="cancelarPlan"
-        class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
-      <button id="guardarPlan"
-        class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Enviar</button>
+      <button id="cancelarPlan" class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
+      <button id="guardarPlan" class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Guardar</button>
     </div>
   </div>
 </div>
@@ -205,10 +185,8 @@
   <div class="bg-white p-6 rounded-lg w-full max-w-sm text-center">
     <p id="textoDesmarcar" class="text-gray-700 text-base mb-6">¿Estás seguro de desmarcar?</p>
     <div class="flex gap-3 justify-center mt-2">
-      <button id="cancelarDesmarcar"
-        class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
-      <button id="aceptarDesmarcar"
-        class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Aceptar</button>
+      <button id="cancelarDesmarcar" class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
+      <button id="aceptarDesmarcar" class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Aceptar</button>
     </div>
   </div>
 </div>
@@ -219,10 +197,8 @@
   <div class="bg-white p-6 rounded-lg w-full max-w-sm text-center">
     <p id="textoEliminarPlan" class="text-gray-700 text-base mb-6">¿Estás seguro de eliminar?</p>
     <div class="flex gap-3 justify-center mt-2">
-      <button id="cancelarEliminarPlan"
-        class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
-      <button id="aceptarEliminarPlan"
-        class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Aceptar</button>
+      <button id="cancelarEliminarPlan" class="px-5 py-2 rounded-lg border border-red-300 text-red-400 hover:bg-red-50 transition text-sm">Cancelar</button>
+      <button id="aceptarEliminarPlan" class="px-5 py-2 rounded-lg border border-green-300 text-green-500 hover:bg-green-50 transition text-sm">Aceptar</button>
     </div>
   </div>
 </div>
@@ -233,9 +209,7 @@
   <!-- INICIO -->
   <div id="inicio" class="section">
     <section class="mb-6 text-center">
-      <h2 class="text-xl font-semibold text-gray-700 mb-2">
-        Bienvenido, <span id="userNameMain"></span> ❤️
-      </h2>
+      <h2 class="text-xl font-semibold text-gray-700 mb-2">Bienvenido, <span id="userNameMain"></span> ❤️</h2>
     </section>
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <div class="bg-white shadow rounded-lg p-4">
@@ -263,11 +237,8 @@
       <h2 class="text-xl font-semibold text-pink-600">Mensajes</h2>
       <div class="flex gap-2 items-center">
         <button id="btnNuevoMensaje" onclick="abrirModal('mensaje')" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         </button>
-        <!-- CAMBIO 3: botón lápiz -->
         <button id="btnEditarMensaje" onclick="activarModoEditarSeccion('mensaje')"
           class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -286,9 +257,7 @@
       <h2 class="text-xl font-semibold text-pink-600">Fotos</h2>
       <div class="flex gap-2 items-center">
         <button id="btnNuevoFoto" onclick="abrirModal('foto')" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         </button>
         <button id="btnEditarFoto" onclick="activarModoEditarSeccion('foto')"
           class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
@@ -308,9 +277,7 @@
       <h2 class="text-xl font-semibold text-pink-600">Canciones</h2>
       <div class="flex gap-2 items-center">
         <button id="btnNuevoCancion" onclick="abrirModal('cancion')" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         </button>
         <button id="btnEditarCancion" onclick="activarModoEditarSeccion('cancion')"
           class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
@@ -330,9 +297,7 @@
       <h2 class="text-xl font-semibold text-pink-600">Frases</h2>
       <div class="flex gap-2 items-center">
         <button id="btnNuevoFrase" onclick="abrirModal('frase')" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         </button>
         <button id="btnEditarFrase" onclick="activarModoEditarSeccion('frase')"
           class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
@@ -351,11 +316,8 @@
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold text-pink-600">Extras</h2>
       <div class="flex gap-2 items-center">
-        <button id="btnNuevoPlan" onclick="abrirModalPlan()"
-          class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
+        <button id="btnNuevoPlan" onclick="abrirModalPlan()" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         </button>
         <button id="btnEditarPlan" onclick="activarModoEditarPlanes()"
           class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
@@ -366,12 +328,10 @@
         </button>
       </div>
     </div>
-
     <div class="flex border-b border-pink-100 mb-4">
       <button class="tabPlan px-4 py-2 text-sm font-medium text-purple-600 border-b-2 border-purple-500" data-tab="cita">Citas</button>
       <button class="tabPlan px-4 py-2 text-sm font-medium text-gray-400 border-b-2 border-transparent" data-tab="plan">Planes</button>
     </div>
-
     <div id="planesContainer" class="space-y-3"></div>
   </div>
 
