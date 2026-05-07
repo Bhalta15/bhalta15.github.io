@@ -378,8 +378,22 @@ function resetearModoSeccion(tipo) {
 
 // BUG FIX: al navegar entre secciones también se limpia cualquier toast de deshacer pendiente
 function resetearTodosModos() {
+  // Limpiar siempre cualquier deshacer pendiente al navegar entre secciones
+  if (deshacerTimeout) {
+    clearTimeout(deshacerTimeout);
+    deshacerTimeout = null;
+  }
+  if (deshacerDatos) {
+    _ejecutarCommit(deshacerDatos);
+    deshacerDatos = null;
+  }
+  ocultarToastDeshacerById();
+
   ['mensaje', 'foto', 'cancion', 'frase'].forEach(tipo => {
-    if (modoSeccion[tipo]) resetearModoSeccion(tipo);
+    modoSeccion[tipo] = null;
+    seleccionados[tipo].clear();
+    ocultarBarraFlotante(tipo);
+    actualizarBotonesHeader(tipo);
   });
   resetearModoEditarPlanes();
 }
