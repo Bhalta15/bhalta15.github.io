@@ -29,7 +29,7 @@ const modoSeccion = { mensaje: null, foto: null, cancion: null, frase: null };
 const seleccionados = { mensaje: new Set(), foto: new Set(), cancion: new Set(), frase: new Set() };
 
 // ===== MODO PLANES =====
-let modoPlan = null; // null | 'editar' | 'eliminar'
+let modoPlan = null;
 const seleccionadosPlan = new Set();
 
 // ===== CORAZONES MENÚ =====
@@ -166,43 +166,71 @@ async function mostrarToastInApp(tipo, nombreUsuarioPareja) {
 }
 
 // ===== TOAST CON DESHACER =====
+// BUG FIX: Se reescribió todo el sistema de deshacer para que:
+// 1. La barra siempre se oculte correctamente tras eliminar/deshacer/cancelar
+// 2. No haya conflictos entre eliminaciones pendientes simultáneas
+// 3. El timeout se limpie correctamente en todos los caminos
+
 let deshacerTimeout = null;
 let deshacerDatos   = null;
 
 function mostrarToastDeshacer(tipo, items) {
-  // Cancelar cualquier eliminación pendiente anterior y commitear
+  // Si había una eliminación pendiente anterior, la ejecutamos antes de continuar
   if (deshacerTimeout) {
     clearTimeout(deshacerTimeout);
-    if (deshacerDatos) commitEliminar(deshacerDatos);
+    deshacerTimeout = null;
+    if (deshacerDatos) {
+      commitEliminar(deshacerDatos);
+    }
   }
   deshacerDatos = { tipo, items };
 
-  // Crear o reusar el elemento toast
   let toastEl = document.getElementById('toast-deshacer');
   if (!toastEl) {
     toastEl = document.createElement('div');
     toastEl.id = 'toast-deshacer';
-    // Posición fija, oculto inicialmente
-    toastEl.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;display:flex;align-items:center;gap:12px;background:#7c3aed;color:white;font-size:14px;padding:12px 20px;border-radius:16px;box-shadow:0 8px 24px rgba(124,58,237,0.35);border:2px solid #6d28d9;white-space:nowrap;';
+    toastEl.style.cssText = [
+      'position:fixed',
+      'bottom:24px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'z-index:999',
+      'display:none',
+      'align-items:center',
+      'gap:12px',
+      // BUG FIX diseño: fondo clarito + contorno morado (igual que la barra de selección)
+      'background:#ede9fe',
+      'color:#6d28d9',
+      'font-size:14px',
+      'padding:12px 20px',
+      'border-radius:16px',
+      'box-shadow:0 8px 24px rgba(124,58,237,0.2)',
+      'border:2px solid #7c3aed',
+      'white-space:nowrap'
+    ].join(';');
     document.body.appendChild(toastEl);
   }
 
   const n = items.length;
-  toastEl.innerHTML = `<span>${n > 1 ? `${n} elementos eliminados` : 'Eliminado'}</span>
-    <button id="btn-deshacer" style="font-weight:700;color:#f9a8d4;text-decoration:underline;background:none;border:none;cursor:pointer;padding:0;">Deshacer</button>`;
+  toastEl.innerHTML = `
+    <span style="font-weight:500;color:#6d28d9;">${n > 1 ? `${n} elementos eliminados` : 'Eliminado'}</span>
+    <button id="btn-deshacer" style="font-weight:700;color:#7c3aed;text-decoration:underline;background:none;border:none;cursor:pointer;padding:0;">Deshacer</button>`;
 
-  // Animar entrada (slide-up)
   toastEl.style.display = 'flex';
   toastEl.classList.remove('slide-down');
   toastEl.classList.add('slide-up');
 
   document.getElementById('btn-deshacer').onclick = () => {
-    clearTimeout(deshacerTimeout);
+    // BUG FIX: limpiar timeout ANTES de cualquier otra operación
+    if (deshacerTimeout) {
+      clearTimeout(deshacerTimeout);
+      deshacerTimeout = null;
+    }
+
     const itemsRestaurar = deshacerDatos?.items || [];
     const tipoRestaurar  = deshacerDatos?.tipo;
     deshacerDatos = null;
 
-    // Animar salida
     _ocultarToastDeshacer(toastEl);
 
     // Reinsertar items y re-renderizar
@@ -217,22 +245,30 @@ function mostrarToastDeshacer(tipo, items) {
   };
 
   deshacerTimeout = setTimeout(async () => {
+    deshacerTimeout = null;
     _ocultarToastDeshacer(toastEl);
     if (deshacerDatos) {
-      await commitEliminar(deshacerDatos);
+      const datos = deshacerDatos;
       deshacerDatos = null;
+      await commitEliminar(datos);
     }
   }, 4000);
 }
 
 function _ocultarToastDeshacer(toastEl) {
-  if (!toastEl) return;
+  if (!toastEl || toastEl.style.display === 'none') return;
   toastEl.classList.remove('slide-up');
   toastEl.classList.add('slide-down');
   setTimeout(() => {
     toastEl.style.display = 'none';
     toastEl.classList.remove('slide-down');
   }, 320);
+}
+
+// BUG FIX helper: ocultar toast deshacer por id (para llamadas sin referencia al elemento)
+function ocultarToastDeshacerById() {
+  const toastEl = document.getElementById('toast-deshacer');
+  if (toastEl) _ocultarToastDeshacer(toastEl);
 }
 
 async function commitEliminar({ tipo, items }) {
@@ -305,6 +341,7 @@ function actualizarMenuActivo(seccion) {
 }
 
 // ===== RESETEAR MODO AL NAVEGAR =====
+// BUG FIX: resetearModoSeccion ahora siempre oculta la barra flotante y el toast de deshacer
 function resetearModoSeccion(tipo) {
   if (!modoSeccion[tipo]) return;
   modoSeccion[tipo] = null;
@@ -314,6 +351,7 @@ function resetearModoSeccion(tipo) {
   rerenderSeccion(tipo);
 }
 
+// BUG FIX: al navegar entre secciones también se limpia cualquier toast de deshacer pendiente
 function resetearTodosModos() {
   ['mensaje', 'foto', 'cancion', 'frase'].forEach(tipo => {
     if (modoSeccion[tipo]) resetearModoSeccion(tipo);
@@ -369,8 +407,22 @@ window.elegirModo = (tipo, modo) => {
   else ocultarBarraFlotante(tipo);
 };
 
+// BUG FIX: cancelarModo ahora también oculta cualquier toast de deshacer pendiente
+// y fuerza ocultar la barra flotante aunque no haya modo activo (edge case)
 window.cancelarModo = (tipo) => {
-  resetearModoSeccion(tipo);
+  // Si había un deshacer pendiente, lo commiteamos antes de salir
+  if (deshacerTimeout && deshacerDatos?.tipo === tipo) {
+    clearTimeout(deshacerTimeout);
+    deshacerTimeout = null;
+    const datos = deshacerDatos;
+    deshacerDatos = null;
+    ocultarToastDeshacerById();
+    commitEliminar(datos);
+  }
+  modoSeccion[tipo] = null;
+  seleccionados[tipo].clear();
+  ocultarBarraFlotante(tipo);
+  actualizarBotonesHeader(tipo);
   rerenderSeccion(tipo);
 };
 
@@ -392,6 +444,7 @@ window.elegirModoPlan = (modo) => {
   else ocultarBarraFlotantePlan();
 };
 
+// BUG FIX: cancelarModoPlan oculta la barra flotante de planes siempre
 window.cancelarModoPlan = () => {
   resetearModoEditarPlanes();
 };
@@ -415,17 +468,23 @@ function mostrarBarraFlotantePlan() {
     document.body.appendChild(barra);
   }
   _actualizarBarraFlotantePlan();
-  barra.classList.remove('hidden');
-  barra.classList.remove('slide-down');
+  barra.style.display = 'flex';
+  barra.classList.remove('hidden', 'slide-down');
   barra.classList.add('slide-up');
 }
 
+// BUG FIX: ocultarBarraFlotantePlan usa display:none además de la clase hidden
 function ocultarBarraFlotantePlan() {
   const barra = document.getElementById('barra-plan');
-  if (!barra || barra.classList.contains('hidden')) return;
+  if (!barra) return;
+  if (barra.style.display === 'none' && barra.classList.contains('hidden')) return;
   barra.classList.remove('slide-up');
   barra.classList.add('slide-down');
-  setTimeout(() => { barra.classList.add('hidden'); barra.classList.remove('slide-down'); }, 320);
+  setTimeout(() => {
+    barra.style.display = 'none';
+    barra.classList.add('hidden');
+    barra.classList.remove('slide-down');
+  }, 320);
 }
 
 function _actualizarBarraFlotantePlan() {
@@ -464,12 +523,18 @@ window.solicitarEliminarPlanes = () => {
     modalEliminar.classList.add('hidden');
     modalEliminar.classList.remove('flex');
     const ids = [...seleccionadosPlan];
+    
+    // BUG FIX: guardar items para posible deshacer en planes
+    const itemsEliminados = (renderPlanes._datos || []).filter(d => ids.includes(d.id));
+    
     try {
       for (const id of ids) {
         await deleteDoc(doc(db, 'parejas', codigoPareja, 'planes', id));
       }
       mostrarToast(`${ids.length > 1 ? ids.length + ' elementos eliminados' : 'Eliminado'}`, 'exito');
     } catch (e) { mostrarToast('Error al eliminar', 'error'); console.error(e); }
+    
+    // BUG FIX: resetear modo y OCULTAR barra después de eliminar en planes
     resetearModoEditarPlanes();
   };
 };
@@ -491,22 +556,27 @@ function mostrarBarraFlotante(tipo) {
   if (!barra) {
     barra = document.createElement('div');
     barra.id = `barra-${tipo}`;
-    // Estilos inline para morado claro con contorno
     barra.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:12px;background:#ede9fe;border:2px solid #7c3aed;border-radius:16px;padding:10px 20px;box-shadow:0 8px 24px rgba(124,58,237,0.2);white-space:nowrap;';
     document.body.appendChild(barra);
   }
   actualizarBarraFlotante(tipo);
-  barra.classList.remove('hidden');
-  barra.classList.remove('slide-down');
+  barra.style.display = 'flex';
+  barra.classList.remove('hidden', 'slide-down');
   barra.classList.add('slide-up');
 }
 
+// BUG FIX: ocultarBarraFlotante usa display:none para garantizar que desaparezca
 function ocultarBarraFlotante(tipo) {
   const barra = document.getElementById(`barra-${tipo}`);
-  if (!barra || barra.classList.contains('hidden')) return;
+  if (!barra) return;
+  if (barra.style.display === 'none' && barra.classList.contains('hidden')) return;
   barra.classList.remove('slide-up');
   barra.classList.add('slide-down');
-  setTimeout(() => { barra.classList.add('hidden'); barra.classList.remove('slide-down'); }, 320);
+  setTimeout(() => {
+    barra.style.display = 'none';
+    barra.classList.add('hidden');
+    barra.classList.remove('slide-down');
+  }, 320);
 }
 
 function actualizarBarraFlotante(tipo) {
@@ -549,9 +619,18 @@ window.solicitarEliminarSeleccionados = (tipo) => {
     const ids   = [...seleccionados[tipo]];
     const items = datosGlobal.filter(d => ids.includes(d.id));
 
+    // BUG FIX: limpiar selección ANTES de quitar modo para que resetearModoSeccion
+    // no intente ocultar una barra que ya vamos a reemplazar con el toast
+    seleccionados[tipo].clear();
     datosGlobal = datosGlobal.filter(d => !ids.includes(d.id));
+    
+    // BUG FIX: resetear modo y ocultar barra flotante ANTES de mostrar toast deshacer
+    modoSeccion[tipo] = null;
+    ocultarBarraFlotante(tipo);
+    actualizarBotonesHeader(tipo);
     rerenderSeccion(tipo);
-    resetearModoSeccion(tipo);
+
+    // Ahora mostramos el toast de deshacer
     mostrarToastDeshacer(tipo, items);
   };
 };
@@ -1062,6 +1141,8 @@ function iniciarTiempoReal() {
       }
     }
 
+    // BUG FIX: el snapshot de tiempo real NO debe sobreescribir items que están
+    // en espera de "deshacer" — los filtramos igual que antes
     const datosParaRender = datos.filter(d => !idsPendientes.has(d.id));
     datosGlobal = datosParaRender;
     renderTodo(datosParaRender);
@@ -1069,8 +1150,8 @@ function iniciarTiempoReal() {
 }
 
 // ===== PLANES =====
-let tabPlanActual    = "cita";
-let planEditandoId   = null;
+let tabPlanActual  = "cita";
+let planEditandoId = null;
 
 const modalPlan       = document.getElementById('modalPlan');
 const modalPlanTitulo = document.getElementById('modalPlanTitulo');
@@ -1080,8 +1161,8 @@ const labelPlanFecha  = document.getElementById('labelPlanFecha');
 const cancelarPlan    = document.getElementById('cancelarPlan');
 const guardarPlan     = document.getElementById('guardarPlan');
 
+// BUG FIX: resetearModoEditarPlanes siempre oculta la barra flotante del plan
 function resetearModoEditarPlanes() {
-  if (modoPlan === null) return;
   modoPlan = null;
   seleccionadosPlan.clear();
   ocultarBarraFlotantePlan();
@@ -1204,7 +1285,6 @@ function _renderPlanesHTML() {
       fechaLinea = `<p class="text-xs text-purple-400 mt-1">${emoji} ${formatearFechaPlan(d.fechaPlan)}</p>`;
     }
 
-    // Modo eliminar: checkbox en todas las cards (ambos usuarios pueden eliminar)
     if (modoPlan === 'eliminar') {
       const seleccionado = seleccionadosPlan.has(d.id);
       const checkClass   = seleccionado ? 'bg-purple-500 border-purple-500' : 'bg-white border-gray-300';
@@ -1218,7 +1298,6 @@ function _renderPlanesHTML() {
       </div>`;
     }
 
-    // Modo editar: todas las cards clickeables
     if (modoPlan === 'editar') {
       return `<div data-plan-id="${d.id}" class="bg-white shadow rounded-xl p-4 border-2 border-purple-400 relative transition-all cursor-pointer hover:border-purple-600 select-none ${d.completado ? 'opacity-60' : ''}">
         <p class="text-gray-700 break-words pr-6">${d.texto}</p>
@@ -1243,7 +1322,6 @@ function _renderPlanesHTML() {
     </div>`;
   }).join('');
 
-  // Asignar eventos en modo eliminar y editar
   if (modoPlan === 'eliminar') {
     cont.querySelectorAll('[data-plan-id]').forEach(card => {
       const id = card.dataset.planId;
