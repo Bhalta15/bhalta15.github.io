@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="Daily Love">
   <link rel="apple-touch-icon" href="Daily L.png">
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  
+
 <style>
   @keyframes rebote {
     0%   { transform: scale(1); }
@@ -31,11 +31,15 @@
   }
   .corazon-menu { animation: latido 0.8s ease-in-out infinite; }
 
-  /* Ítem activo del menú — morado claro */
   .itemMenu.activo {
     background-color: #ede9fe;
     color: #7c3aed;
     font-weight: 600;
+  }
+
+  /* Dropdown puntitos */
+  .menu-puntitos-dropdown {
+    min-width: 140px;
   }
 </style>
 </head>
@@ -63,39 +67,31 @@
   class="fixed top-0 left-0 h-full w-64 bg-white shadow-md transform -translate-x-full transition-transform duration-300 z-50 p-6">
   <h2 class="text-xl font-bold text-pink-600 mb-6">Menú</h2>
   <ul class="flex flex-col gap-3">
-    <li>
-      <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors" data-section="inicio">Inicio</button>
-    </li>
+    <li><button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors" data-section="inicio">Inicio</button></li>
     <li>
       <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="mensajes">
-        Mensajes
-        <span id="heart-mensaje" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
+        Mensajes <span id="heart-mensaje" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
     </li>
     <li>
       <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="fotos">
-        Fotos
-        <span id="heart-foto" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
+        Fotos <span id="heart-foto" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
     </li>
     <li>
       <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="canciones">
-        Canciones
-        <span id="heart-cancion" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
+        Canciones <span id="heart-cancion" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
     </li>
     <li>
       <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="frases">
-        Frases
-        <span id="heart-frase" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
+        Frases <span id="heart-frase" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
     </li>
-    <!-- Separador morado más visible -->
     <li><hr class="my-2 border-[2px] border-purple-200 rounded-full"></li>
     <li>
       <button class="itemMenu w-full text-left px-4 py-2 rounded hover:bg-purple-100 hover:text-purple-700 transition-colors flex items-center justify-between" data-section="planes">
-        Extras
-        <span id="heart-plan" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
+        Extras <span id="heart-plan" class="hidden corazon-menu text-purple-600 text-sm">♥</span>
       </button>
     </li>
   </ul>
@@ -105,7 +101,6 @@
 <div id="modal"
   class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 opacity-0 transition-opacity duration-300 p-4">
   <div class="bg-white p-6 rounded-lg w-full max-w-md">
-    <!-- Título dinámico en morado -->
     <h3 id="modalNuevoTitulo" class="text-lg font-bold text-purple-600 mb-4">Nuevo contenido</h3>
     <textarea id="inputTexto" class="w-full border rounded p-3 mb-3 hidden" placeholder="Escribe algo..."></textarea>
     <div id="inputCancionDiv" class="hidden mb-3 flex flex-col gap-3">
@@ -236,16 +231,48 @@
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-semibold text-pink-600">Mensajes</h2>
       <div class="flex gap-2 items-center">
-        <button id="btnNuevoMensaje" onclick="abrirModal('mensaje')" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+
+        <!-- Botón Cancelar (oculto por defecto) -->
+        <button id="btnCancelarMensaje" onclick="cancelarModo('mensaje')"
+          class="hidden px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
+          Cancelar
         </button>
-        <button id="btnEditarMensaje" onclick="activarModoEditarSeccion('mensaje')"
-          class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
+
+        <!-- Botón ⋯ con dropdown -->
+        <div id="btnPuntitosMensaje" class="menu-puntitos-container relative">
+          <button onclick="toggleMenuPuntitos('mensaje')"
+            class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition font-bold text-lg leading-none px-3">
+            ···
+          </button>
+          <div id="dropdown-mensaje" class="menu-puntitos-dropdown hidden absolute right-0 top-10 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden">
+            <button onclick="elegirModo('mensaje','editar')"
+              class="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Editar
+            </button>
+            <hr class="border-gray-100">
+            <button onclick="elegirModo('mensaje','eliminar')"
+              class="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              Eliminar
+            </button>
+          </div>
+        </div>
+
+        <!-- Botón + -->
+        <button id="btnNuevoMensaje" onclick="abrirModal('mensaje')"
+          class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
           </svg>
         </button>
+
       </div>
     </div>
     <div id="mensajesContainer" class="space-y-3"></div>
@@ -256,16 +283,45 @@
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-semibold text-pink-600">Fotos</h2>
       <div class="flex gap-2 items-center">
-        <button id="btnNuevoFoto" onclick="abrirModal('foto')" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+
+        <button id="btnCancelarFoto" onclick="cancelarModo('foto')"
+          class="hidden px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
+          Cancelar
         </button>
-        <button id="btnEditarFoto" onclick="activarModoEditarSeccion('foto')"
-          class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
+
+        <div id="btnPuntitosFoto" class="menu-puntitos-container relative">
+          <button onclick="toggleMenuPuntitos('foto')"
+            class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition font-bold text-lg leading-none px-3">
+            ···
+          </button>
+          <div id="dropdown-foto" class="menu-puntitos-dropdown hidden absolute right-0 top-10 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden">
+            <button onclick="elegirModo('foto','editar')"
+              class="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Editar
+            </button>
+            <hr class="border-gray-100">
+            <button onclick="elegirModo('foto','eliminar')"
+              class="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              Eliminar
+            </button>
+          </div>
+        </div>
+
+        <button id="btnNuevoFoto" onclick="abrirModal('foto')"
+          class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
           </svg>
         </button>
+
       </div>
     </div>
     <div id="fotosContainer" class="space-y-3"></div>
@@ -276,16 +332,45 @@
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-semibold text-pink-600">Canciones</h2>
       <div class="flex gap-2 items-center">
-        <button id="btnNuevoCancion" onclick="abrirModal('cancion')" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+
+        <button id="btnCancelarCancion" onclick="cancelarModo('cancion')"
+          class="hidden px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
+          Cancelar
         </button>
-        <button id="btnEditarCancion" onclick="activarModoEditarSeccion('cancion')"
-          class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
+
+        <div id="btnPuntitosCancion" class="menu-puntitos-container relative">
+          <button onclick="toggleMenuPuntitos('cancion')"
+            class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition font-bold text-lg leading-none px-3">
+            ···
+          </button>
+          <div id="dropdown-cancion" class="menu-puntitos-dropdown hidden absolute right-0 top-10 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden">
+            <button onclick="elegirModo('cancion','editar')"
+              class="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Editar
+            </button>
+            <hr class="border-gray-100">
+            <button onclick="elegirModo('cancion','eliminar')"
+              class="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              Eliminar
+            </button>
+          </div>
+        </div>
+
+        <button id="btnNuevoCancion" onclick="abrirModal('cancion')"
+          class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
           </svg>
         </button>
+
       </div>
     </div>
     <div id="cancionesContainer" class="space-y-3"></div>
@@ -296,16 +381,45 @@
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-semibold text-pink-600">Frases</h2>
       <div class="flex gap-2 items-center">
-        <button id="btnNuevoFrase" onclick="abrirModal('frase')" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+
+        <button id="btnCancelarFrase" onclick="cancelarModo('frase')"
+          class="hidden px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
+          Cancelar
         </button>
-        <button id="btnEditarFrase" onclick="activarModoEditarSeccion('frase')"
-          class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
+
+        <div id="btnPuntitosFrase" class="menu-puntitos-container relative">
+          <button onclick="toggleMenuPuntitos('frase')"
+            class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition font-bold text-lg leading-none px-3">
+            ···
+          </button>
+          <div id="dropdown-frase" class="menu-puntitos-dropdown hidden absolute right-0 top-10 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden">
+            <button onclick="elegirModo('frase','editar')"
+              class="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Editar
+            </button>
+            <hr class="border-gray-100">
+            <button onclick="elegirModo('frase','eliminar')"
+              class="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              Eliminar
+            </button>
+          </div>
+        </div>
+
+        <button id="btnNuevoFrase" onclick="abrirModal('frase')"
+          class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-            <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
           </svg>
         </button>
+
       </div>
     </div>
     <div id="frasesContainer" class="space-y-3"></div>
@@ -316,8 +430,11 @@
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold text-pink-600">Extras</h2>
       <div class="flex gap-2 items-center">
-        <button id="btnNuevoPlan" onclick="abrirModalPlan()" class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <button id="btnNuevoPlan" onclick="abrirModalPlan()"
+          class="p-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
         </button>
         <button id="btnEditarPlan" onclick="activarModoEditarPlanes()"
           class="p-2 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition">
