@@ -119,7 +119,7 @@ async function iniciarOneSignal() {
 }
 
 // ===== NOTIFICACIÓN A LA PAREJA =====
-async function notificarPareja(tipo, contenidoRaw = "") {
+async function notificarPareja(tipo, contenidoRaw = "", esEdicion = false) {
   try {
     const parejaSnap = await getDoc(doc(db, "parejas", codigoPareja));
     if (!parejaSnap.exists()) return;
@@ -142,7 +142,7 @@ async function notificarPareja(tipo, contenidoRaw = "") {
     await fetch("https://daily-love-server.onrender.com/notificar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oneSignalId, tipo, nombreUsuario: nombreEnNoti, preview })
+      body: JSON.stringify({ oneSignalId, tipo, nombreUsuario: nombreEnNoti, preview, esEdicion })
     });
   } catch (e) { console.error("Error notificación:", e); }
 }
@@ -839,6 +839,7 @@ guardarEditar.onclick = async () => {
     await updateDoc(doc(db, "parejas", codigoPareja, "contenido", d.id), { contenido: nuevoContenido });
     mostrarToast(d.tipo === "foto" ? "¡Foto reemplazada!" : "¡Editado!", "exito");
     cerrarModalEditar();
+    await notificarPareja(d.tipo, nuevoContenido, true);
   } catch (error) { mostrarToast("Error al guardar", "error"); console.error(error); }
 };
 
@@ -1309,7 +1310,10 @@ window.desmarcarCompletado = async (id, tab) => {
 };
 
 function renderPlanes() {
-  if (renderPlanes._unsub) { _renderPlanesHTML(); return; }
+  // Si ya hay datos cargados, renderizar de inmediato sin esperar
+  if (renderPlanes._datos) _renderPlanesHTML();
+  // Si el listener ya está activo, no crear otro
+  if (renderPlanes._unsub) return;
   const ref = collection(db, 'parejas', codigoPareja, 'planes');
   renderPlanes._unsub = onSnapshot(ref, snap => {
     const idsPendientes = (deshacerDatos?.tipo === 'plan')
