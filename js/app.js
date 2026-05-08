@@ -186,7 +186,7 @@ async function notificarEliminacionSiCorresponde(tipo, itemsEliminados) {
 }
 
 // ===== TOAST IN-APP =====
-const mensajesInApp = { mensaje: "nuevo mensaje", foto: "nueva foto", cancion: "nueva canción", frase: "nueva frase", cita: "nueva cita", plan: "nuevo plan" };
+const mensajesInApp = { mensaje: "nuevo mensaje", foto: "nueva foto", cancion: "nueva canción", frase: "nueva frase" };
 let apodoDePareja = "";
 
 async function cargarApodoPareja() {
@@ -974,30 +974,64 @@ function crearCardHTML(d, modo) {
   }
 
   if (modo === 'editar') {
-    const opAjena      = !esMio ? 'opacity-40' : '';
-    const cursorEditar = esMio ? 'cursor-pointer hover:border-purple-400' : '';
-    if (d.tipo === "mensaje" || d.tipo === "frase") {
-      return `<div data-id="${d.id}" data-editar="${esMio}"
-        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
-        <p class="text-gray-700 text-lg break-all pr-8">"${d.contenido}"</p>${corazon}</div>`;
-    }
-    if (d.tipo === "foto") {
-      return `<div data-id="${d.id}" data-editar="${esMio}"
-        class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
-        <div class="w-full h-48 overflow-hidden rounded-lg"><img src="${d.contenido}" alt="Foto" class="w-full h-full object-cover"></div>${corazon}</div>`;
-    }
-    if (d.tipo === "cancion") {
-      let desc = "", link = "";
-      try { const p = JSON.parse(d.contenido); desc = p.desc; link = p.link; } catch { link = d.contenido; }
-      return `<div data-id="${d.id}" data-editar="${esMio}"
-        class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
-        ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
-        <div class="flex items-center justify-between">
-          <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
-          <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>
-        </div>${corazon}</div>`;
-    }
+  const opAjena      = !esMio ? 'opacity-40' : '';
+  const cursorEditar = esMio ? 'cursor-pointer hover:border-purple-400' : '';
+
+  // Iconito abajo derecha
+  const iconEditar = esMio
+    ? `<span class="absolute bottom-3 right-3 text-purple-400">
+         ${lapizSVG}
+       </span>`
+    : '';
+
+  if (d.tipo === "mensaje" || d.tipo === "frase") {
+    return `<div data-id="${d.id}" data-editar="${esMio}"
+      class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
+      <p class="text-gray-700 text-lg break-all pr-8">"${d.contenido}"</p>
+      ${corazon}
+      ${iconEditar}
+    </div>`;
   }
+
+  if (d.tipo === "foto") {
+    return `<div data-id="${d.id}" data-editar="${esMio}"
+      class="bg-white shadow-lg rounded-xl p-3 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
+      <div class="w-full h-48 overflow-hidden rounded-lg">
+        <img src="${d.contenido}" alt="Foto" class="w-full h-full object-cover">
+      </div>
+      ${corazon}
+      ${iconEditar}
+    </div>`;
+  }
+
+  if (d.tipo === "cancion") {
+    let desc = "", link = "";
+
+    try {
+      const p = JSON.parse(d.contenido);
+      desc = p.desc;
+      link = p.link;
+    } catch {
+      link = d.contenido;
+    }
+
+    return `<div data-id="${d.id}" data-editar="${esMio}"
+      class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none ${opAjena} ${cursorEditar}">
+      
+      ${desc ? `<p class="text-gray-700 text-base mb-3 break-all">"${desc}"</p>` : ""}
+
+      <div class="flex items-center justify-between">
+        <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
+        <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">
+          Escuchar ▶
+        </span>
+      </div>
+
+      ${corazon}
+      ${iconEditar}
+    </div>`;
+  }
+}
 
   // Modo normal
   if (d.tipo === "mensaje" || d.tipo === "frase") {
