@@ -141,19 +141,6 @@ async function iniciarOneSignal() {
     }
   } catch (e) { console.error("OneSignal error:", e); }
 }
-// ========= LIMPIAR NOTIFICACIONES ======
-// FIX BUG 2: limpiar notificaciones push al volver a la app
-document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible') {
-    try {
-      if (typeof OneSignal !== 'undefined' && OneSignal.Notifications?.clearAll) {
-        await OneSignal.Notifications.clearAll();
-      }
-    } catch (e) { console.warn('clearAll error:', e); }
-  }
-});
-
-
 
 // ===== NOTIFICACIÓN A LA PAREJA =====
 // esEliminacion = true → manda noti de "eliminó su X"
@@ -1207,7 +1194,7 @@ function iniciarTiempoReal() {
   if (!codigoPareja) return;
   if (unsubscribe) unsubscribe();
   const ref = collection(db, "parejas", codigoPareja, "contenido");
-unsubscribe = onSnapshot(ref, async (snapshot) => {
+  unsubscribe = onSnapshot(ref, async (snapshot) => {
     const datos = [];
     snapshot.forEach(d => datos.push({ id: d.id, ...d.data() }));
     datos.sort((a, b) => {
@@ -1220,10 +1207,9 @@ unsubscribe = onSnapshot(ref, async (snapshot) => {
       ? new Set(deshacerDatos.items.map(i => i.id))
       : new Set();
 
-    const ultimaVisita = parseInt(localStorage.getItem('ultimaVisita') || '0');
-
     if (idsConocidos === null) {
       idsConocidos = new Set(datos.map(d => d.id));
+      const ultimaVisita = parseInt(localStorage.getItem('ultimaVisita') || '0');
       for (const d of datos) {
         if (d.autorUid !== miUid) {
           const fechaItem = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
@@ -1246,17 +1232,6 @@ unsubscribe = onSnapshot(ref, async (snapshot) => {
         }
         idsConocidos.add(d.id);
       }
-
-      // FIX BUG 1: re-evaluar corazones cuando desaparece contenido (pareja eliminó algo)
-      const idsActuales = new Set(datos.map(d => d.id));
-      ['mensaje', 'foto', 'cancion', 'frase'].forEach(tipo => {
-        const hayNuevosDePareja = datos.some(d => {
-          if (d.tipo !== tipo || d.autorUid === miUid) return false;
-          const fecha = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha || 0);
-          return fecha.getTime() > ultimaVisita;
-        });
-        if (!hayNuevosDePareja) quitarCorazon(tipo);
-      });
     }
 
     const datosParaRender = datos.filter(d => !idsPendientes.has(d.id));
@@ -1380,11 +1355,12 @@ function renderPlanes() {
   if (renderPlanes._unsub) return;
 
   const ref = collection(db, 'parejas', codigoPareja, 'planes');
-renderPlanes._unsub = onSnapshot(ref, async snap => {
+  renderPlanes._unsub = onSnapshot(ref, snap => {
     const idsPendientes = (deshacerDatos?.tipo === 'plan')
       ? new Set(deshacerDatos.items.map(i => i.id))
       : new Set();
 
+    // Detectar nuevos planes/citas de la pareja (corazón en Extras)
     if (renderPlanes._idsConocidos === undefined) {
       renderPlanes._idsConocidos = new Set();
       const ultimaVisita = parseInt(localStorage.getItem('ultimaVisita') || '0');
@@ -1397,35 +1373,17 @@ renderPlanes._unsub = onSnapshot(ref, async snap => {
         }
       });
     } else {
-      for (const d of snap.docs) {
+      snap.forEach(d => {
         if (!renderPlanes._idsConocidos.has(d.id)) {
           const data = d.data();
           if (data.autorUid !== miUid) {
-            // FIX BUG 3: toast in-app para planes/citas
-            await cargarApodoPareja();
-            let nombrePareja = "";
-            try {
-              const ps = await getDoc(doc(db, "usuarios", data.autorUid));
-              if (ps.exists()) nombrePareja = ps.data().usuario || "";
-            } catch {}
-            const tipoNoti = data.tab === 'cita' ? 'cita' : 'plan';
-            await mostrarToastInApp(tipoNoti, nombrePareja);
             mostrarCorazon('plan');
+            // Si ya estamos en Extras, quitar el corazón de inmediato
             if (seccionActiva === 'planes') quitarCorazon('plan');
           }
           renderPlanes._idsConocidos.add(d.id);
         }
-      }
-
-      // FIX BUG 1: re-evaluar corazón de plan cuando la pareja elimina algo
-      const ultimaVisita = parseInt(localStorage.getItem('ultimaVisita') || '0');
-      const hayNuevosPlan = snap.docs.some(d => {
-        const data = d.data();
-        if (data.autorUid === miUid) return false;
-        const fecha = data.fecha?.toDate ? data.fecha.toDate() : new Date(data.fecha || 0);
-        return fecha.getTime() > ultimaVisita;
       });
-      if (!hayNuevosPlan) quitarCorazon('plan');
     }
 
     renderPlanes._datos = [];
