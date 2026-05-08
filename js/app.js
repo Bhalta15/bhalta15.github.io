@@ -186,7 +186,7 @@ async function notificarEliminacionSiCorresponde(tipo, itemsEliminados) {
 }
 
 // ===== TOAST IN-APP =====
-const mensajesInApp = { mensaje: "Nuevo mensaje💬", foto: "Nueva foto📸", cancion: "Nueva canción🎵", frase: "Nueva frase💭" };
+const mensajesInApp = { mensaje: "nuevo mensaje", foto: "nueva foto", cancion: "nueva canción", frase: "nueva frase" };
 let apodoDePareja = "";
 
 async function cargarApodoPareja() {
