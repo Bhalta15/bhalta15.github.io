@@ -25,7 +25,7 @@ let seccionActiva  = "inicio";
 let idsConocidos   = null;
 
 // ===== MODO POR SECCIÓN =====
-const modoSeccion = { mensaje: null, foto: null, cancion: null, frase: null };
+const modoSeccion   = { mensaje: null, foto: null, cancion: null, frase: null };
 const seleccionados = { mensaje: new Set(), foto: new Set(), cancion: new Set(), frase: new Set() };
 
 // ===== MODO PLANES =====
@@ -47,6 +47,27 @@ function cargarCorazonesGuardados() {
   ['mensaje', 'foto', 'cancion', 'frase', 'plan'].forEach(tipo => {
     if (localStorage.getItem(`heart-${tipo}`) === 'true') mostrarCorazon(tipo);
   });
+}
+
+// ===== LÓGICA: quitar corazón tras eliminar si ya no hay nuevos de pareja =====
+function actualizarCorazonTrasEliminar(tipo) {
+  const ultimaVisita = parseInt(localStorage.getItem('ultimaVisita') || '0');
+  const hayNuevosDePareja = datosGlobal.some(d => {
+    if (d.tipo !== tipo || d.autorUid === miUid) return false;
+    const fecha = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha || 0);
+    return fecha.getTime() > ultimaVisita;
+  });
+  if (!hayNuevosDePareja) quitarCorazon(tipo);
+}
+
+function actualizarCorazonTrasEliminarPlanes() {
+  const ultimaVisita = parseInt(localStorage.getItem('ultimaVisita') || '0');
+  const hayNuevosDePareja = (renderPlanes._datos || []).some(d => {
+    if (d.autorUid === miUid) return false;
+    const fecha = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha || 0);
+    return fecha.getTime() > ultimaVisita;
+  });
+  if (!hayNuevosDePareja) quitarCorazon('plan');
 }
 
 // ===== TÍTULOS =====
@@ -115,7 +136,6 @@ async function iniciarOneSignal() {
     if (playerId && miUid && codigoPareja) {
       await setDoc(doc(db, "usuarios", miUid), { oneSignalId: playerId }, { merge: true });
     }
-    // Limpiar notificaciones pendientes al abrir la app
     if (OneSignal.Notifications.clearAll) {
       await OneSignal.Notifications.clearAll();
     }
@@ -123,7 +143,8 @@ async function iniciarOneSignal() {
 }
 
 // ===== NOTIFICACIÓN A LA PAREJA =====
-async function notificarPareja(tipo, contenidoRaw = "", esEdicion = false) {
+// esEliminacion = true → manda noti de "eliminó su X"
+async function notificarPareja(tipo, contenidoRaw = "", esEdicion = false, esEliminacion = false) {
   try {
     const parejaSnap = await getDoc(doc(db, "parejas", codigoPareja));
     if (!parejaSnap.exists()) return;
@@ -137,18 +158,31 @@ async function notificarPareja(tipo, contenidoRaw = "", esEdicion = false) {
     const apodoQueEllaTieneParaMi = parejaUserSnap.data()?.apodoPareja || "";
     const miNombre = document.getElementById("userName").textContent;
     const nombreEnNoti = apodoQueEllaTieneParaMi || miNombre;
+
     let preview = "";
-    if (tipo === "mensaje" || tipo === "frase") {
-      preview = contenidoRaw.length > 50 ? contenidoRaw.substring(0, 50) + "..." : contenidoRaw;
-    } else if (tipo === "cancion") {
-      try { const p = JSON.parse(contenidoRaw); preview = (p.desc || "").substring(0, 50); } catch {}
+    // Al eliminar no enviamos preview
+    if (!esEliminacion) {
+      if (tipo === "mensaje" || tipo === "frase") {
+        preview = contenidoRaw.length > 50 ? contenidoRaw.substring(0, 50) + "..." : contenidoRaw;
+      } else if (tipo === "cancion") {
+        try { const p = JSON.parse(contenidoRaw); preview = (p.desc || "").substring(0, 50); } catch {}
+      }
     }
+
     await fetch("https://daily-love-server.onrender.com/notificar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oneSignalId, tipo, nombreUsuario: nombreEnNoti, preview, esEdicion })
+      body: JSON.stringify({ oneSignalId, tipo, nombreUsuario: nombreEnNoti, preview, esEdicion, esEliminacion })
     });
   } catch (e) { console.error("Error notificación:", e); }
+}
+
+// Notifica eliminación solo si los ítems eliminados eran míos
+async function notificarEliminacionSiCorresponde(tipo, itemsEliminados) {
+  const miosEliminados = itemsEliminados.filter(i => i.autorUid === miUid);
+  if (miosEliminados.length === 0) return;
+  const tipoNoti = miosEliminados[0].tipo;
+  await notificarPareja(tipoNoti, "", false, true);
 }
 
 // ===== TOAST IN-APP =====
@@ -170,16 +204,10 @@ async function mostrarToastInApp(tipo, nombreUsuarioPareja) {
 }
 
 // ===== TOAST CON DESHACER =====
-// BUG FIX: Se reescribió todo el sistema de deshacer para que:
-// 1. La barra siempre se oculte correctamente tras eliminar/deshacer/cancelar
-// 2. No haya conflictos entre eliminaciones pendientes simultáneas
-// 3. El timeout se limpie correctamente en todos los caminos
-
 let deshacerTimeout = null;
 let deshacerDatos   = null;
 
 function mostrarToastDeshacer(tipo, items) {
-  // Si había una eliminación pendiente anterior, la ejecutamos antes de continuar
   if (deshacerTimeout) {
     clearTimeout(deshacerTimeout);
     deshacerTimeout = null;
@@ -236,7 +264,6 @@ function mostrarToastDeshacer(tipo, items) {
     _ocultarToastDeshacer(toastEl);
 
     if (tipoRestaurar === 'plan') {
-      // Restaurar planes: reinsertarlos en el array local y re-renderizar
       if (!renderPlanes._datos) renderPlanes._datos = [];
       renderPlanes._datos = [...renderPlanes._datos, ...itemsRestaurar].sort((a, b) => {
         const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha || 0);
@@ -244,8 +271,16 @@ function mostrarToastDeshacer(tipo, items) {
         return fb - fa;
       });
       _renderPlanesHTML();
+      // Re-evaluar corazón de plan tras restaurar
+      actualizarCorazonTrasEliminarPlanes();
+      const ultimaVisitaP = parseInt(localStorage.getItem('ultimaVisita') || '0');
+      const hayNuevosPlan = (renderPlanes._datos || []).some(d => {
+        if (d.autorUid === miUid) return false;
+        const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha || 0);
+        return f.getTime() > ultimaVisitaP;
+      });
+      if (hayNuevosPlan) mostrarCorazon('plan');
     } else {
-      // Restaurar contenido normal
       datosGlobal = [...datosGlobal, ...itemsRestaurar].sort((a, b) => {
         const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
         const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
@@ -253,6 +288,14 @@ function mostrarToastDeshacer(tipo, items) {
       });
       if (tipoRestaurar) rerenderSeccion(tipoRestaurar);
       renderInicio(datosGlobal);
+      // Re-evaluar corazón del tipo restaurado
+      const ultimaVisita = parseInt(localStorage.getItem('ultimaVisita') || '0');
+      const hayNuevos = datosGlobal.some(d => {
+        if (d.tipo !== tipoRestaurar || d.autorUid === miUid) return false;
+        const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha || 0);
+        return f.getTime() > ultimaVisita;
+      });
+      if (hayNuevos) mostrarCorazon(tipoRestaurar);
     }
     mostrarToast('¡Restaurado!', 'exito');
   };
@@ -263,7 +306,7 @@ function mostrarToastDeshacer(tipo, items) {
     if (deshacerDatos) {
       const datos = deshacerDatos;
       await _ejecutarCommit(datos);
-      deshacerDatos = null; // limpiar DESPUÉS del commit para que el snapshot no flashee
+      deshacerDatos = null;
     }
   }, 4000);
 }
@@ -286,7 +329,6 @@ function _ocultarToastDeshacer(toastEl) {
   }, 320);
 }
 
-// BUG FIX helper: ocultar toast deshacer por id (para llamadas sin referencia al elemento)
 function ocultarToastDeshacerById() {
   const toastEl = document.getElementById('toast-deshacer');
   if (toastEl) _ocultarToastDeshacer(toastEl);
@@ -297,6 +339,8 @@ async function commitEliminar({ tipo, items }) {
     for (const item of items) {
       await deleteDoc(doc(db, "parejas", codigoPareja, "contenido", item.id));
     }
+    // Notificar a la pareja si eran ítems míos
+    await notificarEliminacionSiCorresponde(tipo, items);
   } catch (e) { console.error("Error eliminando:", e); mostrarToast("Error al eliminar", "error"); }
 }
 
@@ -304,6 +348,11 @@ async function commitEliminarPlanes({ items }) {
   try {
     for (const item of items) {
       await deleteDoc(doc(db, 'parejas', codigoPareja, 'planes', item.id));
+    }
+    // Notificar a la pareja si eran planes/citas míos
+    const mios = items.filter(i => i.autorUid === miUid);
+    if (mios.length > 0) {
+      await notificarPareja(mios[0].tab || 'plan', "", false, true);
     }
   } catch (e) { console.error("Error eliminando planes:", e); mostrarToast("Error al eliminar", "error"); }
 }
@@ -337,7 +386,7 @@ setPersistence(auth, browserLocalPersistence).then(() => {
         }
         await cargarApodoPareja();
         iniciarTiempoReal();
-        renderPlanes(); // Iniciar listener de planes en tiempo real desde el arranque
+        renderPlanes();
         cargarCorazonesGuardados();
         actualizarMenuActivo('inicio');
         if (typeof OneSignal !== "undefined") {
@@ -371,7 +420,6 @@ function actualizarMenuActivo(seccion) {
 }
 
 // ===== RESETEAR MODO AL NAVEGAR =====
-// BUG FIX: resetearModoSeccion ahora siempre oculta la barra flotante y el toast de deshacer
 function resetearModoSeccion(tipo) {
   if (!modoSeccion[tipo]) return;
   modoSeccion[tipo] = null;
@@ -381,9 +429,7 @@ function resetearModoSeccion(tipo) {
   rerenderSeccion(tipo);
 }
 
-// BUG FIX: al navegar entre secciones también se limpia cualquier toast de deshacer pendiente
 function resetearTodosModos() {
-  // Limpiar siempre cualquier deshacer pendiente al navegar entre secciones
   if (deshacerTimeout) {
     clearTimeout(deshacerTimeout);
     deshacerTimeout = null;
@@ -451,10 +497,7 @@ window.elegirModo = (tipo, modo) => {
   else ocultarBarraFlotante(tipo);
 };
 
-// BUG FIX: cancelarModo ahora también oculta cualquier toast de deshacer pendiente
-// y fuerza ocultar la barra flotante aunque no haya modo activo (edge case)
 window.cancelarModo = (tipo) => {
-  // Si había un deshacer pendiente de ESTE tipo, lo commiteamos antes de salir
   if (deshacerTimeout && deshacerDatos?.tipo === tipo) {
     clearTimeout(deshacerTimeout);
     deshacerTimeout = null;
@@ -488,7 +531,6 @@ window.elegirModoPlan = (modo) => {
   else ocultarBarraFlotantePlan();
 };
 
-// BUG FIX: cancelarModoPlan oculta la barra flotante de planes siempre
 window.cancelarModoPlan = () => {
   resetearModoEditarPlanes();
 };
@@ -517,7 +559,6 @@ function mostrarBarraFlotantePlan() {
   barra.classList.add('slide-up');
 }
 
-// BUG FIX: ocultarBarraFlotantePlan usa display:none además de la clase hidden
 function ocultarBarraFlotantePlan() {
   const barra = document.getElementById('barra-plan');
   if (!barra) return;
@@ -571,24 +612,24 @@ window.solicitarEliminarPlanes = () => {
     const ids = [...seleccionadosPlan];
     const itemsEliminados = (renderPlanes._datos || []).filter(d => ids.includes(d.id));
 
-    // Quitar visualmente de inmediato (igual que las otras secciones)
     seleccionadosPlan.clear();
     if (renderPlanes._datos) {
       renderPlanes._datos = renderPlanes._datos.filter(d => !ids.includes(d.id));
     }
 
-    // Resetear modo y ocultar barra ANTES del toast deshacer
+    // Actualizar corazón de plan ANTES del toast deshacer
+    actualizarCorazonTrasEliminarPlanes();
+
     modoPlan = null;
     ocultarBarraFlotantePlan();
     _actualizarBotonesHeaderPlan();
     _renderPlanesHTML();
 
-    // Mostrar toast con deshacer (igual que las otras secciones)
     mostrarToastDeshacer('plan', itemsEliminados);
   };
 };
 
-// ===== ACTUALIZAR HEADER (botones ⋯ / Listo y +) =====
+// ===== ACTUALIZAR HEADER =====
 function actualizarBotonesHeader(tipo) {
   const btnNuevo    = document.getElementById(`btnNuevo${capitalizar(tipo)}`);
   const btnPuntitos = document.getElementById(`btnPuntitos${capitalizar(tipo)}`);
@@ -614,7 +655,6 @@ function mostrarBarraFlotante(tipo) {
   barra.classList.add('slide-up');
 }
 
-// BUG FIX: ocultarBarraFlotante usa display:none para garantizar que desaparezca
 function ocultarBarraFlotante(tipo) {
   const barra = document.getElementById(`barra-${tipo}`);
   if (!barra) return;
@@ -651,7 +691,6 @@ window.solicitarEliminarSeleccionados = (tipo) => {
   modalEliminar.classList.remove('hidden');
   modalEliminar.classList.add('flex');
 
-  // Siempre buscar los botones frescos del DOM para evitar referencias muertas
   const btnAceptar  = document.getElementById('aceptarEliminar');
   const btnCancelar = document.getElementById('cancelarEliminar');
   const nuevoAceptar  = btnAceptar.cloneNode(true);
@@ -671,18 +710,17 @@ window.solicitarEliminarSeleccionados = (tipo) => {
     const ids   = [...seleccionados[tipo]];
     const items = datosGlobal.filter(d => ids.includes(d.id));
 
-    // BUG FIX: limpiar selección ANTES de quitar modo para que resetearModoSeccion
-    // no intente ocultar una barra que ya vamos a reemplazar con el toast
     seleccionados[tipo].clear();
     datosGlobal = datosGlobal.filter(d => !ids.includes(d.id));
-    
-    // BUG FIX: resetear modo y ocultar barra flotante ANTES de mostrar toast deshacer
+
+    // Actualizar corazón ANTES del toast deshacer
+    actualizarCorazonTrasEliminar(tipo);
+
     modoSeccion[tipo] = null;
     ocultarBarraFlotante(tipo);
     actualizarBotonesHeader(tipo);
     rerenderSeccion(tipo);
 
-    // Ahora mostramos el toast de deshacer
     mostrarToastDeshacer(tipo, items);
   };
 };
@@ -1196,8 +1234,6 @@ function iniciarTiempoReal() {
       }
     }
 
-    // BUG FIX: el snapshot de tiempo real NO debe sobreescribir items que están
-    // en espera de "deshacer" — los filtramos igual que antes
     const datosParaRender = datos.filter(d => !idsPendientes.has(d.id));
     datosGlobal = datosParaRender;
     renderTodo(datosParaRender);
@@ -1216,9 +1252,7 @@ const labelPlanFecha  = document.getElementById('labelPlanFecha');
 const cancelarPlan    = document.getElementById('cancelarPlan');
 const guardarPlan     = document.getElementById('guardarPlan');
 
-// BUG FIX: resetearModoEditarPlanes siempre oculta la barra flotante del plan
 function resetearModoEditarPlanes() {
-  // Si había un deshacer de planes pendiente, commitearlo
   if (deshacerTimeout && deshacerDatos?.tipo === 'plan') {
     clearTimeout(deshacerTimeout);
     deshacerTimeout = null;
@@ -1315,16 +1349,42 @@ window.desmarcarCompletado = async (id, tab) => {
   nc.onclick = () => { modalConf.classList.add('hidden'); modalConf.classList.remove('flex'); };
 };
 
+// ===== RENDER PLANES =====
 function renderPlanes() {
-  // Si ya hay datos cargados, renderizar de inmediato sin esperar
   if (renderPlanes._datos) _renderPlanesHTML();
-  // Si el listener ya está activo, no crear otro
   if (renderPlanes._unsub) return;
+
   const ref = collection(db, 'parejas', codigoPareja, 'planes');
   renderPlanes._unsub = onSnapshot(ref, snap => {
     const idsPendientes = (deshacerDatos?.tipo === 'plan')
       ? new Set(deshacerDatos.items.map(i => i.id))
       : new Set();
+
+    // Detectar nuevos planes/citas de la pareja (corazón en Extras)
+    if (renderPlanes._idsConocidos === undefined) {
+      renderPlanes._idsConocidos = new Set();
+      const ultimaVisita = parseInt(localStorage.getItem('ultimaVisita') || '0');
+      snap.forEach(d => {
+        renderPlanes._idsConocidos.add(d.id);
+        const data = d.data();
+        if (data.autorUid !== miUid) {
+          const fechaItem = data.fecha?.toDate ? data.fecha.toDate() : new Date(data.fecha || 0);
+          if (fechaItem.getTime() > ultimaVisita) mostrarCorazon('plan');
+        }
+      });
+    } else {
+      snap.forEach(d => {
+        if (!renderPlanes._idsConocidos.has(d.id)) {
+          const data = d.data();
+          if (data.autorUid !== miUid) {
+            mostrarCorazon('plan');
+            // Si ya estamos en Extras, quitar el corazón de inmediato
+            if (seccionActiva === 'planes') quitarCorazon('plan');
+          }
+          renderPlanes._idsConocidos.add(d.id);
+        }
+      });
+    }
 
     renderPlanes._datos = [];
     snap.forEach(d => {
