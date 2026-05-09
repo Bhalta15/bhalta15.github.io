@@ -4,8 +4,8 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   signOut,
-  setPersistence,                  // ✅ AGREGADO
-  browserSessionPersistence        // ✅ AGREGADO
+  setPersistence,
+  browserLocalPersistence          // ✅ Local: recuerda sesión al cerrar la app
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth, db } from "./firebase.js";
 import { setDoc, getDoc, doc, collection, query, where, getDocs }
@@ -125,7 +125,7 @@ btnRegistrar.addEventListener("click", async () => {
       }
     });
 
-    // ✅ Cerrar sesión después del registro para que no entre solo
+    // ✅ Cerrar sesión tras registro para que no entre solo antes de verificar
     await signOut(auth);
 
     mostrarToast("Te enviamos un correo para verificar tu cuenta", "info");
@@ -169,15 +169,15 @@ btnIniciar.addEventListener("click", async () => {
   }
 
   try {
-    // ✅ Sesión solo dura mientras el tab esté abierto
-    await setPersistence(auth, browserSessionPersistence);
+    // ✅ Sesión persiste aunque cierres la app
+    await setPersistence(auth, browserLocalPersistence);
 
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
     if (!user.emailVerified) {
       mostrarToast("Verifica tu correo primero", "error");
-      await signOut(auth); // ✅ Cerrar sesión si no ha verificado
+      await signOut(auth);
       return;
     }
 
