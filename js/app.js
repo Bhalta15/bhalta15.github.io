@@ -339,8 +339,8 @@ async function commitEliminar({ tipo, items }) {
     for (const item of items) {
       await deleteDoc(doc(db, "parejas", codigoPareja, "contenido", item.id));
     }
-    // Notificar a la pareja si eran ítems míos
     await notificarEliminacionSiCorresponde(tipo, items);
+    actualizarCorazonTrasEliminar(tipo);
   } catch (e) { console.error("Error eliminando:", e); mostrarToast("Error al eliminar", "error"); }
 }
 
