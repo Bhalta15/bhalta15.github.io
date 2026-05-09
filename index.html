@@ -1,127 +1,154 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inicio - Daily Love</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Love</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="manifest" href="manifest.json">
-  <!-- 🔥 FAVICON -->
-  <link rel="icon" href="Daily L.png" type="image/png">
   <meta name="theme-color" content="#EC4899">
-   <!-- PWA en iPhone -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Daily Love">
-<!-- Icono para iPhone -->
-<link rel="apple-touch-icon" href="Daily L.png">
+  <link rel="icon" href="Daily L.png" type="image/png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Daily Love">
+  <link rel="apple-touch-icon" href="Daily L.png">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { overflow-x: hidden; }
+    .fade-up { animation: fadeUp 1.2s ease forwards; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .float { animation: float 5s ease-in-out infinite; }
+    @keyframes float {
+      0%   { transform: translateY(0px); }
+      50%  { transform: translateY(-8px); }
+      100% { transform: translateY(0px); }
+    }
+    .heart {
+      position: absolute;
+      color: rgba(255,255,255,0.25);
+      animation: hearts 12s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes hearts {
+      0%   { transform: translateY(0) scale(1); opacity: 0; }
+      20%  { opacity: 1; }
+      100% { transform: translateY(-120vh) scale(1.5); opacity: 0; }
+    }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
 
+<body class="bg-gradient-to-br from-pink-100 via-white to-pink-200 text-gray-800">
 
-  <!-- Header -->
- <header class="relative flex items-center p-6 bg-white shadow-md">
+  <!-- Corazones -->
+  <div class="heart text-3xl left-[10%] bottom-0">💖</div>
+  <div class="heart text-2xl left-[30%] bottom-[-10%]" style="animation-delay: 2s;">💕</div>
+  <div class="heart text-4xl left-[50%] bottom-[-5%]" style="animation-delay: 4s;">💗</div>
+  <div class="heart text-2xl left-[70%] bottom-[-15%]" style="animation-delay: 6s;">💞</div>
+  <div class="heart text-3xl left-[90%] bottom-[-10%]" style="animation-delay: 8s;">❤️</div>
 
-  <!-- IZQUIERDA (logo) -->
-  <div class="flex items-center gap-3">
-    <img src="Daily L.png" alt="Logo Daily Love" class="h-10 w-10">
-  </div>
-
-  <!-- CENTRO (título) -->
-  <h1 class="absolute left-1/2 transform -translate-x-1/2 text-2xl font-bold text-pink-600">
-    Daily Love
-  </h1>
-
-  <!-- DERECHA (icono user) -->
-<nav class="ml-auto">
-  <a href="registro.html" 
-     class="p-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition flex items-center justify-center shadow-md">
-
-    <!-- ICONO USER 👤 (MEJORADO) -->
-    <svg xmlns="http://www.w3.org/2000/svg" 
-         class="h-6 w-6" 
-         fill="none" 
-         viewBox="0 0 24 24" 
-         stroke="currentColor">
-
-      <!-- cabeza -->
-      <circle cx="12" cy="8" r="4" stroke-width="2"/>
-
-      <!-- cuerpo -->
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M6 20c0-3.3137 2.6863-6 6-6s6 2.6863 6 6"/>
-
-    </svg>
-
-  </a>
-</nav>
-
-</header>
-
-  <!-- Hero / Bienvenida -->
-  <section class="flex flex-col items-center justify-center text-center h-screen px-6 bg-gradient-to-br from-pink-100 to-white">
-    <h2 class="text-4xl font-bold text-pink-600 mb-4">Bienvenida a Daily Love 💖</h2>
-    <p class="text-lg text-gray-700 mb-8">
-      Explora las funciones de Daily Love y descubre mensajes, fotos, canciones y recuerdos especiales.
-    </p>
-    <div class="flex gap-4 flex-wrap justify-center">
-      <a href="#mensajes" class="flex items-center gap-2 px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
+  <!-- HEADER -->
+  <header class="relative flex items-center p-5 bg-white/70 backdrop-blur-lg shadow-md border-b border-white/30">
+    <div class="flex items-center gap-3">
+      <img src="Daily L.png" alt="Logo Daily Love" class="h-10 w-10 float">
+    </div>
+    <div class="absolute left-1/2 transform -translate-x-1/2 text-center">
+      <h1 class="text-2xl font-bold text-pink-600">Daily Love</h1>
+    </div>
+    <nav class="ml-auto">
+      <a href="registro.html"
+         class="p-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition flex items-center justify-center shadow-md hover:scale-105">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <circle cx="12" cy="8" r="4" stroke-width="2"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 20c0-3.3137 2.6863-6 6-6s6 2.6863 6 6"/>
         </svg>
-        Mensajes
       </a>
-      <a href="#fotos" class="flex items-center gap-2 px-6 py-3 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v13h18V7H3zM3 7l6-4 6 4h6v13H3V7z" />
-        </svg>
-        Fotos
-      </a>
-      <a href="#musica" class="flex items-center gap-2 px-6 py-3 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 3v10.55a4 4 0 1 0 2 3.45V8h4V3h-6z"/>
-        </svg>
-        Música
-      </a>
-      <a href="#videos" class="flex items-center gap-2 px-6 py-3 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14v-4zM4 6h8v12H4V6z" />
-        </svg>
-        Videos
-      </a>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section class="relative flex items-center justify-center px-5 py-8 md:py-10 overflow-hidden">
+    <div class="absolute top-10 left-10 w-56 h-56 bg-pink-300 opacity-20 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-10 right-10 w-56 h-56 bg-rose-300 opacity-20 rounded-full blur-3xl"></div>
+
+    <!-- Carta -->
+    <div class="relative max-w-5xl w-full bg-white/65 backdrop-blur-xl rounded-[35px] shadow-2xl border border-white/40 p-6 md:p-10 fade-up">
+
+      <!-- Foto -->
+      <div class="flex justify-center mb-5">
+        <img src="bw.jpeg" alt="Wendy" class="w-32 h-32 md:w-40 md:h-40 object-cover rounded-full border-4 border-white shadow-2xl float">
+      </div>
+
+      <!-- Título -->
+      <div class="text-center">
+        <h2 class="text-3xl md:text-5xl font-bold text-pink-600 leading-tight mb-4">"Para ti, bonita."</h2>
+      </div>
+
+      <!-- Mensaje -->
+      <div class="max-w-3xl mx-auto text-center space-y-5 text-gray-700 text-base md:text-lg leading-relaxed">
+        <p>Primero que nada, quiero agradecerte por estos dos años tan hermosos junto a ti, el tiempo paso volando y ahora ya estamos viviendo una vida juntos, y aun lo que falta por compartir.✨</p>
+        <p>De verdad ame tu compañia en cada etapa de mi vida; esos abrazos, besos y risas que nunca faltaron, los ánimos que no dejaste de darme, y sobre todo, lo mucho que creiste en mí, y claro, cada momento que hiciste especial en mi vida.</p>
+        <p>Sé que ahora nuestras rutinas cambiarán un poco... tú seguirás esforzándote en la escuela y yo pronto comenzaré una nueva etapa, pero no habrá motivo para separarme de ti, si no todo lo contrario. Solo no quiero que olvides algo:</p>
+        <p class="text-pink-600 font-bold text-xl md:text-2xl">Siempre voy a estar para ti chincita 💜</p>
+        <p>Así mismo, celebramos 1 año y medio de prometidos, algo que nunca creí que pasaría, ahora es un sueño hecho realidad. Hechale muchas ganas a todo lo que viene, sabes que tienes todo mi apoyo.</p>
+        <p class="text-pink-600 font-bold text-xl md:text-2xl">Eres lo más valioso en mi vida 🌹</p>
+        <p>Esta app no es solo una aplicación y ya. Es un pequeño espacio donde quiero guardar todo lo que amo de nosotros: nuestros recuerdos, canciones que nos identifican, fotos increibles, mensajes y momentos especiales.</p>
+        <p>Gracias por todo lo vivído, espero jamás olvides todo lo que significas y provocas en mi. Porque sin importar cuánto cambien nuestras vidas... sigo imaginando un futuro contigo.♾️💕</p>
+        <p class="text-pink-500 font-semibold text-xl md:text-2xl">Te amo muchísimo, mi prometida 🥹</p>
+      </div>
+
+      <!-- Tarjetas fila 1: 4 tarjetas -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+        <div class="bg-white/60 backdrop-blur-lg rounded-3xl p-5 text-center shadow-lg hover:scale-105 transition duration-300">
+          <div class="text-3xl mb-2">💌</div>
+          <p class="font-semibold text-pink-600">Mensajes</p>
+        </div>
+        <div class="bg-white/60 backdrop-blur-lg rounded-3xl p-5 text-center shadow-lg hover:scale-105 transition duration-300">
+          <div class="text-3xl mb-2">📸</div>
+          <p class="font-semibold text-pink-600">Recuerdos</p>
+        </div>
+        <div class="bg-white/60 backdrop-blur-lg rounded-3xl p-5 text-center shadow-lg hover:scale-105 transition duration-300">
+          <div class="text-3xl mb-2">🎵</div>
+          <p class="font-semibold text-pink-600">Canciones</p>
+        </div>
+        <div class="bg-white/60 backdrop-blur-lg rounded-3xl p-5 text-center shadow-lg hover:scale-105 transition duration-300">
+          <div class="text-3xl mb-2">🎬</div>
+          <p class="font-semibold text-pink-600">Momentos</p>
+        </div>
+      </div>
+
+      <!-- Tarjetas fila 2: 2 tarjetas centradas -->
+      <div class="flex justify-center gap-4 mt-4">
+        <div class="bg-white/60 backdrop-blur-lg rounded-3xl p-5 text-center shadow-lg hover:scale-105 transition duration-300 w-[calc(50%-0.5rem)] md:w-[calc(25%-0.75rem)]">
+          <div class="text-3xl mb-2">📅</div>
+          <p class="font-semibold text-pink-600">Citas</p>
+        </div>
+        <div class="bg-white/60 backdrop-blur-lg rounded-3xl p-5 text-center shadow-lg hover:scale-105 transition duration-300 w-[calc(50%-0.5rem)] md:w-[calc(25%-0.75rem)]">
+          <div class="text-3xl mb-2">⏳</div>
+          <p class="font-semibold text-pink-600">Planes</p>
+        </div>
+      </div>
+
+      <!-- Contador -->
+      <div class="mt-8 text-center space-y-2">
+        <p class="text-2xl md:text-3xl font-bold text-pink-600">Ya 2 años juntos!😻</p>
+        <p class="text-lg text-gray-600">💍1 año y medio comprometidos</p>
+        <p class="text-gray-500 text-sm md:text-base">💗Y todo comenzó un 09-MAYO-2024💗</p>
+      </div>
+
     </div>
   </section>
 
-  <!-- Sección de funciones -->
-  <section class="px-6 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-    <div class="p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
-      <img src="icono-mensajes.jpg" alt="Mensajes" class="mx-auto h-12 mb-3">
-      <h3 class="text-xl font-semibold text-pink-600 mb-2">Mensajes diarios</h3>
-      <p class="text-gray-600">Mensajes que se actualizan todos los días.</p>
-    </div>
-    <div class="p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
-      <img src="icono-mensajes.jpg" alt="Fotos" class="mx-auto h-12 mb-3">
-      <h3 class="text-xl font-semibold text-pink-600 mb-2">Fotos para recordar</h3>
-      <p class="text-gray-600">Galería de fotos y recuerdos especiales.</p>
-    </div>
-    <div class="p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
-      <img src="icono-mensajes.jpg" alt="Música" class="mx-auto h-12 mb-3">
-      <h3 class="text-xl font-semibold text-pink-600 mb-2">Canciones favoritas</h3>
-      <p class="text-gray-600">Lista de canciones que pueden reproducirse en la app.</p>
-    </div>
-    <div class="p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
-      <img src="icono-mensajes.jpg" alt="Videos" class="mx-auto h-12 mb-3">
-      <h3 class="text-xl font-semibold text-pink-600 mb-2">Videos y sorpresas</h3>
-      <p class="text-gray-600">Videos y otros contenidos multimedia.</p>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer class="text-center py-6 bg-white shadow-inner">
-    <p class="text-gray-500">Creado con ❤️ para Wendy | Daily Love 2026</p>
+  <!-- FOOTER -->
+  <footer class="text-center py-5 bg-white/70 backdrop-blur-lg border-t border-white/30">
+    <p class="text-gray-500 text-sm">Creado con ❤️ para Wendy | Daily Love 2026</p>
   </footer>
 
- <script type="module" src="js/index.js"></script>
+  <!-- JS -->
+  <script type="module" src="js/index.js"></script>
+
 </body>
 </html>
