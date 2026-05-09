@@ -3,7 +3,7 @@ import { db, auth } from "./firebase.js";
 import {
   onAuthStateChanged,
   signOut,
-  browserSessionPersistence,
+  browserLocalPersistence,
   setPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -358,7 +358,7 @@ async function commitEliminarPlanes({ items }) {
 }
 
 // ===== SESIÓN =====
-setPersistence(auth, browserSessionPersistence).then(() => {
+setPersistence(auth, browserLocalPersistence).then(() => {
   onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = "registro.html"; return; }
     try {
