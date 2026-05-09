@@ -15,7 +15,8 @@ import {
 
 setPersistence(auth, browserLocalPersistence).then(() => {
   onAuthStateChanged(auth, (user) => {
-    if (user) {
+    // Solo redirigir si el usuario existe Y ya verificó su correo
+    if (user && user.emailVerified) {
       window.location.href = "app.html";
     }
   });

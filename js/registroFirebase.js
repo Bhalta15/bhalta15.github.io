@@ -1,7 +1,9 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendEmailVerification
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { auth, db } from "./firebase.js";
@@ -126,7 +128,7 @@ btnRegistrar.addEventListener("click", async () => {
       }
     });
 
-   mostrarToast("Te enviamos un correo para verificar tu cuenta 💌", "info");
+   mostrarToast("Te enviamos un correo para verificar tu cuenta", "info");
    // Limpiar formulario de registro
 document.getElementById("usuario").value = "";
 document.getElementById("email").value = "";
@@ -175,7 +177,7 @@ btnIniciar.addEventListener("click", async () => {
     const user = userCredential.user;
 
     if (!user.emailVerified) {
-      mostrarToast("Verifica tu correo primero 💌", "error");
+      mostrarToast("Verifica tu correo primero", "error");
       return;
     }
 
@@ -211,3 +213,55 @@ function manejarErrorFirebase(code) {
     mostrarToast(err?.msg || "Ocurrió un error, intenta de nuevo", "error");
   }
 }
+// ===== RECUPERAR CONTRASEÑA =====
+const modal          = document.getElementById("modalRecuperar");
+const btnOlvide      = document.getElementById("btnOlvidePassword");
+const btnCerrarModal = document.getElementById("btnCerrarModal");
+const btnEnviar      = document.getElementById("btnEnviarRecuperar");
+const inputRecuperar = document.getElementById("recuperarEmail");
+
+// Abrir modal
+btnOlvide.addEventListener("click", () => {
+  inputRecuperar.value = "";
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+});
+
+// Cerrar modal (botón o click fuera)
+btnCerrarModal.addEventListener("click", cerrarModal);
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) cerrarModal();
+});
+
+function cerrarModal() {
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+  inputRecuperar.value = "";
+  inputRecuperar.classList.remove("border-red-400");
+}
+
+// Enviar correo de recuperación
+btnEnviar.addEventListener("click", async () => {
+  const email = inputRecuperar.value.trim();
+
+  if (!email || !esEmailValido(email)) {
+    inputRecuperar.classList.add("border-red-400");
+    inputRecuperar.focus();
+    mostrarToast("Ingresa un correo válido", "error");
+    return;
+  }
+
+  inputRecuperar.classList.remove("border-red-400");
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    cerrarModal();
+    mostrarToast("Te enviamos el enlace a tu correo", "info");
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      mostrarToast("No encontramos ese correo registrado", "error");
+    } else {
+      mostrarToast("Ocurrió un error, intenta de nuevo", "error");
+    }
+  }
+});
