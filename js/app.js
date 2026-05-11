@@ -1322,7 +1322,7 @@ window.abrirModalPlan = (d = null) => {
   planEditandoId = d ? d.id : null;
   const tab = d ? d.tab : tabPlanActual;
   const nombreTab = tab === 'cita' ? 'cita' : tab === 'promesa' ? 'promesa' : 'plan';
-  modalPlanTitulo.textContent    = d ? `Editar ${nombreTab}` : (tab === 'cita' ? 'Nueva cita' : tab === 'promesa' ? 'Nueva promesa 💍' : 'Nuevo plan');
+  modalPlanTitulo.textContent    = d ? `Editar ${nombreTab}` : (tab === 'cita' ? 'Nueva cita' : tab === 'promesa' ? 'Nueva promesa' : 'Nuevo plan');
   inputPlanTexto.value           = d ? d.texto : '';
   guardarPlan.textContent        = d ? 'Aceptar' : 'Enviar';
 
