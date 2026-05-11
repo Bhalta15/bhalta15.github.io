@@ -458,9 +458,10 @@ document.querySelectorAll('.itemMenu').forEach(btn => {
     seccionActiva = seccion;
     actualizarMenuActivo(seccion);
     resetearTodosModos();
-    const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase', planes: 'plan' };
+    const tipoMap = { mensajes: 'mensaje', fotos: 'foto', canciones: 'cancion', frases: 'frase', planes: 'plan', promesas: 'promesa' };
     if (tipoMap[seccion]) quitarCorazon(tipoMap[seccion]);
     if (seccion === 'planes') renderPlanes();
+    if (seccion === 'promesas') renderPromesas();
     cerrarMenu();
   };
 });
@@ -1320,17 +1321,38 @@ document.querySelectorAll('.tabPlan').forEach(btn => {
 window.abrirModalPlan = (d = null) => {
   planEditandoId = d ? d.id : null;
   const tab = d ? d.tab : tabPlanActual;
-  const nombreTab = tab === 'cita' ? 'cita' : 'plan';
-  modalPlanTitulo.textContent    = d ? `Editar ${nombreTab}` : (tab === 'cita' ? 'Nueva cita' : 'Nuevo plan');
+  const nombreTab = tab === 'cita' ? 'cita' : tab === 'promesa' ? 'promesa' : 'plan';
+  modalPlanTitulo.textContent    = d ? `Editar ${nombreTab}` : (tab === 'cita' ? 'Nueva cita' : tab === 'promesa' ? 'Nueva promesa 💍' : 'Nuevo plan');
   inputPlanTexto.value           = d ? d.texto : '';
   guardarPlan.textContent        = d ? 'Aceptar' : 'Enviar';
-  labelPlanFecha.textContent     = tab === 'cita' ? 'Fecha de la cita (opcional)' : 'Fecha del plan (opcional)';
-  inputPlanFecha.type            = 'date';
-  inputPlanFecha.value           = d?.fechaPlan || '';
+
+  // Mostrar/ocultar fecha o plazo según tab
+  const plazoDiv = document.getElementById('plazoDiv');
+  if (tab === 'promesa') {
+    labelPlanFecha.classList.add('hidden');
+    inputPlanFecha.classList.add('hidden');
+    inputPlanFecha.value = '';
+    plazoDiv.classList.remove('hidden');
+    inputPlanTexto.placeholder = 'Describe la promesa...';
+    // Restaurar plazo si es edición
+    const selectPlazo = document.getElementById('selectPlazo');
+    if (selectPlazo) selectPlazo.value = d?.plazo || '';
+  } else {
+    labelPlanFecha.classList.remove('hidden');
+    inputPlanFecha.classList.remove('hidden');
+    plazoDiv.classList.add('hidden');
+    labelPlanFecha.textContent = tab === 'cita' ? 'Fecha de la cita (opcional)' : 'Fecha del plan (opcional)';
+    inputPlanFecha.type  = 'date';
+    inputPlanFecha.value = d?.fechaPlan || '';
+    inputPlanTexto.placeholder = tab === 'cita' ? 'Describe la cita...' : 'Describe el plan...';
+  }
+
   modalPlan.classList.remove('hidden');
   modalPlan.classList.add('flex');
   setTimeout(() => { modalPlan.classList.remove('opacity-0'); modalPlan.classList.add('opacity-100'); }, 10);
 };
+
+
 
 function cerrarModalPlan() {
   modalPlan.classList.remove('opacity-100');
@@ -1343,21 +1365,32 @@ guardarPlan.onclick = async () => {
   const texto     = inputPlanTexto.value.trim();
   const fechaPlan = inputPlanFecha.value.trim();
   if (!texto) return mostrarToast('Escribe algo primero', 'error');
+
+  // Obtener plazo si es promesa
+  let plazo = null;
+  if (tabPlanActual === 'promesa' || (planEditandoId && (renderPlanes._datos||[]).find(x=>x.id===planEditandoId)?.tab === 'promesa')) {
+    const selectPlazo = document.getElementById('selectPlazo');
+    plazo = selectPlazo?.value || (renderPlanes._datos||[]).find(x=>x.id===planEditandoId)?.plazo || null;
+    if (!plazo && !planEditandoId) return mostrarToast('Selecciona un plazo', 'error');
+  }
+
   if (planEditandoId) {
     try {
-      await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', planEditandoId), { texto, fechaPlan });
+      const updateData = { texto, fechaPlan };
+      if (plazo !== null) updateData.plazo = plazo;
+      await updateDoc(doc(db, 'parejas', codigoPareja, 'planes', planEditandoId), updateData);
       mostrarToast('¡Editado!', 'exito');
       cerrarModalPlan();
-      await notificarPareja(tabPlanActual === 'cita' ? 'cita' : 'plan', texto, true);
+      await notificarPareja(tabPlanActual === 'cita' ? 'cita' : tabPlanActual === 'promesa' ? 'promesa' : 'plan', texto, true);
     } catch (e) { mostrarToast('Error al editar', 'error'); console.error(e); }
   } else {
     try {
-      await addDoc(collection(db, 'parejas', codigoPareja, 'planes'), {
-        texto, fechaPlan, tab: tabPlanActual, fecha: new Date(), autorUid: miUid, completado: false
-      });
+      const newData = { texto, fechaPlan, tab: tabPlanActual, fecha: new Date(), autorUid: miUid, completado: false };
+      if (plazo) newData.plazo = plazo;
+      await addDoc(collection(db, 'parejas', codigoPareja, 'planes'), newData);
       mostrarToast('¡Guardado!', 'exito');
       cerrarModalPlan();
-      await notificarPareja(tabPlanActual === 'cita' ? 'cita' : 'plan', texto, false);
+      await notificarPareja(tabPlanActual === 'cita' ? 'cita' : tabPlanActual === 'promesa' ? 'promesa' : 'plan', texto, false);
     } catch (e) { mostrarToast('Error al guardar', 'error'); console.error(e); }
   }
 };
@@ -1443,16 +1476,24 @@ function _renderPlanesHTML() {
 
   if (datos.length === 0) {
     const vaciosPlan = {
-      cita: "Aún no hay citas planeadas... ¡propón una! 🗓️",
-      plan: "Aún no hay planes... ¡qué se les ocurre! 💡"
+      cita:    "Aún no hay citas planeadas... ¡propón una! 🗓️",
+      plan:    "Aún no hay planes... ¡qué se les ocurre! 💡",
+      promesa: "Aún no hay promesas... ¡escriban sus sueños juntos! 💍"
     };
-    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">${vaciosPlan[tabPlanActual]}</p>`;
+    cont.innerHTML = `<p class="text-center text-gray-400 text-sm py-10">${vaciosPlan[tabPlanActual] || ''}</p>`;
     return;
   }
 
   cont.innerHTML = datos.map(d => {
     let fechaLinea = '';
-    if (d.fechaPlan) {
+    if (d.tab === 'promesa' && d.plazo) {
+      const plazoMap = {
+        corto:  '⚡ Corto plazo (- 1 año)',
+        mediano:'🌱 Mediano plazo (1 - 3 años)',
+        largo:  '🌟 Largo plazo (3+ años)'
+      };
+      fechaLinea = `<p class="text-xs text-purple-400 mt-1">${plazoMap[d.plazo] || ''}</p>`;
+    } else if (d.fechaPlan) {
       const emoji = d.tab === 'cita' ? '📅' : '⏳';
       fechaLinea = `<p class="text-xs text-purple-400 mt-1">${emoji} ${formatearFechaPlan(d.fechaPlan)}</p>`;
     }
@@ -1513,4 +1554,4 @@ function _renderPlanesHTML() {
       });
     });
   }
-      }
+          }
