@@ -1078,7 +1078,7 @@ function crearCardHTML(d, modo) {
     return `<div data-id="${d.id}"
       class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
       ${desc ? `<p class="text-gray-700 text-base mb-3 break-words pr-8">"${desc}"</p>` : ""}
-      <div id="player-${d.id}" class="hidden w-full mb-3 rounded-lg overflow-hidden" style="aspect-ratio:16/9;"></div>
+      <div id="player-${d.id}" class="cancion-player hidden w-full mb-3 rounded-lg overflow-hidden" style="aspect-ratio:16/9;"></div>
       <div class="flex items-center justify-between">
         <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm truncate max-w-[70%]">${link}</a>
         <button data-link="${link}" data-ytid="${ytId || ''}" data-playerid="player-${d.id}" class="btn-play ml-2 px-3 py-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm rounded-lg transition whitespace-nowrap">Play ▶</button>
@@ -1181,6 +1181,15 @@ function renderPorFecha(tipo, datos) {
               btnPlay.textContent = 'Play ▶';
               return;
             }
+
+            // Cierra cualquier otro player abierto
+            document.querySelectorAll('.cancion-player:not(.hidden)').forEach(p => {
+              p.classList.add('hidden');
+              p.innerHTML = '';
+            });
+            document.querySelectorAll('.btn-play').forEach(b => {
+              if (b !== btnPlay) b.textContent = 'Play ▶';
+            });
 
             // Intenta embed
             playerEl.classList.remove('hidden');
