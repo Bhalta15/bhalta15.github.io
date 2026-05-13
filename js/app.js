@@ -933,7 +933,7 @@ function heartSVG(d) {
 }
 
 function ojitaSVG() {
-  return `<button class="btn-ver-foto absolute bottom-0 right-2 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shadow-md hover:bg-purple-700 transition">
+  return `<button class="btn-ver-foto absolute bottom-0 right-0 w-8 h-8 rounded-bl-none rounded-br-lg rounded-tl-lg rounded-tr-none bg-purple-600 flex items-center justify-center shadow-md hover:bg-purple-700 transition">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
       fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -985,7 +985,7 @@ function crearCardHTML(d, modo) {
         ${checkHTML}${desc ? `<p class="text-gray-700 text-base mb-3 break-words">"${desc}"</p>` : ""}
         <div class="flex items-center justify-between">
           <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
-          <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Escuchar ▶</span>
+          <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Play</span>
         </div>${corazon}${hora}</div>`;
     }
   }
@@ -1040,7 +1040,7 @@ function crearCardHTML(d, modo) {
       <div class="flex items-center justify-between">
         <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
         <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">
-          Escuchar ▶
+          Play
         </span>
       </div>
 
@@ -1067,11 +1067,14 @@ function crearCardHTML(d, modo) {
     try { const p = JSON.parse(d.contenido); desc = p.desc; link = p.link; } catch { link = d.contenido; }
     return `<div data-id="${d.id}"
       class="bg-white shadow-lg rounded-xl p-5 ${borde} relative transition-all duration-300 select-none">
-      ${desc ? `<p class="text-gray-700 text-base mb-3 break-words">"${desc}"</p>` : ""}
+      ${desc ? `<p class="text-gray-700 text-base mb-3 break-words pr-8">"${desc}"</p>` : ""}
       <div class="flex items-center justify-between">
         <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm truncate max-w-[70%]">${link}</a>
-        <a href="${link}" target="_blank" class="ml-2 px-3 py-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm rounded-lg transition whitespace-nowrap">Escuchar ▶</a>
-      </div>${corazon}${hora}</div>`;
+        <a href="${link}" target="_blank" class="ml-2 px-3 py-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm rounded-lg transition whitespace-nowrap">Play</a>
+      </div>
+      ${corazon}
+      <div class="flex justify-end mt-1"><span class="text-[11px] text-gray-500 select-none pointer-events-none">${formatearHora(d.fecha)}</span></div>
+    </div>`;
   }
 
   return "";
