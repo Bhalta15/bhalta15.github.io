@@ -985,7 +985,7 @@ function crearCardHTML(d, modo) {
         ${checkHTML}${desc ? `<p class="text-gray-700 text-base mb-3 break-words">"${desc}"</p>` : ""}
         <div class="flex items-center justify-between">
           <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
-          <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Play</span>
+          <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">Play ▶</span>
         </div>${corazon}${hora}</div>`;
     }
   }
@@ -1040,7 +1040,7 @@ function crearCardHTML(d, modo) {
       <div class="flex items-center justify-between">
         <span class="text-gray-400 text-sm truncate max-w-[70%]">${link}</span>
         <span class="ml-2 px-3 py-1.5 bg-gray-200 text-gray-400 text-sm rounded-lg whitespace-nowrap cursor-not-allowed">
-          Play
+          Play ▶
         </span>
       </div>
 
@@ -1070,7 +1070,7 @@ function crearCardHTML(d, modo) {
       ${desc ? `<p class="text-gray-700 text-base mb-3 break-words pr-8">"${desc}"</p>` : ""}
       <div class="flex items-center justify-between">
         <a href="${link}" target="_blank" class="text-sky-500 hover:underline text-sm truncate max-w-[70%]">${link}</a>
-        <a href="${link}" target="_blank" class="ml-2 px-3 py-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm rounded-lg transition whitespace-nowrap">Play</a>
+        <a href="${link}" target="_blank" class="ml-2 px-3 py-1.5 bg-sky-400 hover:bg-sky-500 text-white text-sm rounded-lg transition whitespace-nowrap">Play ▶</a>
       </div>
       ${corazon}
       <div class="flex justify-end mt-1"><span class="text-[11px] text-gray-500 select-none pointer-events-none">${formatearHora(d.fecha)}</span></div>
